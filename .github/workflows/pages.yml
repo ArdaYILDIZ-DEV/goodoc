@@ -25,6 +25,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install pandoc
         run: |
@@ -38,10 +39,16 @@ jobs:
         run: pytest tests/ -v
 
       - name: Build site
-        run: python build.py
+        run: python build.py --strict
 
       - name: Verify build output
-        run: test -f build/index.html && test -f build/docs/dokuman.html && echo "build verified"
+        run: |
+          test -f build/index.html
+          test -f build/docs/dokuman.html
+          test -f build/retro-doc.css
+          test -f build/lightbox.js
+          test -d build/docs/_attachments || echo "no attachments dir (ok if no images)"
+          echo "build verified"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

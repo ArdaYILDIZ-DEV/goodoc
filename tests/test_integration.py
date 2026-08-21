@@ -73,7 +73,7 @@ class TestMainIntegration:
         monkeypatch.setattr(build.subprocess, "run", _fake_pandoc_run)
 
         # --- Act ---
-        build.main()
+        build.main([])
 
         # --- Assert: output files exist ---
         assert (build_dir / "intro.html").exists()
@@ -120,7 +120,7 @@ class TestMainIntegration:
         monkeypatch.setattr(build.shutil, "which", lambda _: "/usr/bin/pandoc")
         monkeypatch.setattr(build.subprocess, "run", _fake_pandoc_run)
 
-        build.main()
+        build.main([])
 
         html = (build_dir / "page.html").read_text(encoding="utf-8")
         # Title should be escaped in <title> — "&" -> "&amp;", HTML tags stripped so "<test>" gone
@@ -134,7 +134,7 @@ class TestMainIntegration:
         monkeypatch.setattr(build, "BUILD", tmp_path / "build")
         monkeypatch.setattr(build.shutil, "which", lambda _: None)
         try:
-            build.main()
+            build.main([])
             assert False, "should have raised SystemExit"
         except SystemExit as exc:
             assert "pandoc not found" in str(exc)

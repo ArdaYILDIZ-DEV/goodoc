@@ -4,10 +4,12 @@
 content/*.md -> build/*.html; static assets are copied and the
 sidebar tree plus "Recent" index pages are generated.
 """
+import argparse
 import html
 import re
 import shutil
 import subprocess
+import sys
 import os
 import tempfile
 import traceback
@@ -360,7 +362,47 @@ md_files_global: list[Path] = []
 file_text_cache: dict[Path, str] = {}
 
 
-def main() -> None:
+def _check_broken_links(build_dir: Path) -> list[str]:
+    """Scan built HTML for broken internal links.
+
+    Only relative href/src without scheme are checked; external URLs,
+    data:, mailto:, tel:, protocol-relative (//) and pure fragments are skipped.
+    Query strings and hash fragments are stripped before FS lookup.
+    """
+    broken: list[str] = []
+    html_files = list(build_dir.rglob("*.html"))
+    link_re = re.compile(r'(?:href|src)\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
+    for html_path in html_files:
+        try:
+            text = html_path.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        for m in link_re.finditer(text):
+            raw = m.group(1).strip()
+            if not raw or raw.startswith(("#", "data:", "mailto:", "tel:", "//")):
+                continue
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", raw):
+                continue  # external scheme (http:, https:, etc.)
+            # Strip query and fragment, then skip if empty or absolute
+            clean = raw.split("?", 1)[0].split("#", 1)[0].strip()
+            if not clean or clean.startswith("/"):
+                continue
+            target = (html_path.parent / clean).resolve()
+            # Only flag if the resolved target is inside build_dir and missing
+            try:
+                target.relative_to(build_dir.resolve())
+            except ValueError:
+                continue  # points outside build — not our concern
+            if not target.exists():
+                broken.append(f"{html_path.relative_to(build_dir)} -> {raw}")
+    return broken
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Build goodoc static site")
+    parser.add_argument("--strict", action="store_true", help="fail on broken internal links")
+    args = parser.parse_args(argv) if argv is not None else parser.parse_args()
+
     global md_files_global, file_text_cache
 
     if not shutil.which("pandoc"):
@@ -586,6 +628,19 @@ def main() -> None:
     )
     index_path.write_text(index_html, encoding="utf-8")
     print(f"built recent index -> {index_path} ({len(recent)} items)")
+
+    # --- Strict: fail on broken internal links ---
+    if args.strict:
+        broken = _check_broken_links(BUILD)
+        if broken:
+            print("\nBROKEN LINKS:")
+            for b in broken:
+                print(f"  {b}")
+            sys.exit("build failed: broken internal links detected")
+
+    # --- Strict: fail if no HTML output produced ---
+    if args.strict and not built_html_paths:
+        sys.exit("build failed: no HTML files produced")
 
 
 if __name__ == "__main__":

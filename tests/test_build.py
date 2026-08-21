@@ -424,3 +424,38 @@ class TestRenderRecentCards:
         monkeypatch.setattr(build, "BUILD", tmp_path / "build")
         monkeypatch.setattr(build, "file_text_cache", {})
         assert build.render_recent_cards([], tmp_path / "build") == ""
+
+
+class TestCheckBrokenLinks:
+    """_check_broken_links must ignore external URLs and flag only missing local files."""
+
+    def test_returns_empty_when_no_broken_links(self, tmp_path):
+        # Valid relative link resolves inside build dir
+        (tmp_path / "page.html").write_text('<a href="other.html">link</a>')
+        (tmp_path / "other.html").write_text("<p>ok</p>")
+        assert build._check_broken_links(tmp_path) == []
+
+    def test_flags_missing_local_file(self, tmp_path):
+        (tmp_path / "page.html").write_text('<a href="missing.html">x</a>')
+        broken = build._check_broken_links(tmp_path)
+        assert len(broken) == 1
+        assert "missing.html" in broken[0]
+
+    def test_ignores_external_and_fragment_links(self, tmp_path):
+        (tmp_path / "page.html").write_text(
+            '<a href="https://example.com/x">e</a>'
+            '<a href="#section">f</a>'
+            '<a href="mailto:a@b.c">m</a>'
+            '<img src="data:image/png;base64,abc">'
+        )
+        assert build._check_broken_links(tmp_path) == []
+
+    def test_strips_query_and_fragment_before_lookup(self, tmp_path):
+        (tmp_path / "page.html").write_text('<a href="other.html?x=1#top">x</a>')
+        (tmp_path / "other.html").write_text("<p>ok</p>")
+        assert build._check_broken_links(tmp_path) == []
+
+    def test_ignores_paths_outside_build(self, tmp_path):
+        # Link to a file outside build dir should not be flagged
+        (tmp_path / "page.html").write_text('<a href="../outside.html">x</a>')
+        assert build._check_broken_links(tmp_path) == []
