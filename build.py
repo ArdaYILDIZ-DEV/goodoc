@@ -642,7 +642,7 @@ def main(argv: list[str] | None = None) -> None:
             attr = m.group(1)
             q = m.group(2)
             src = m.group(3)
-            # External / anchor / protocol-relative / absolute: leave untouched.
+            # External / protocol-relative / absolute URLs are left untouched; other links fall through below.
             if src.startswith(("http", "https", "data:", "mailto:", "tel:", "//", "/")):
                 return m.group(0)
             # Internal link to another markdown document -> rewrite to .html.

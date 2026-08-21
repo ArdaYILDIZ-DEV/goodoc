@@ -96,7 +96,7 @@
 
   /* Pandoc standalone output has no .sheet wrapper; make <body> the sheet.
      Fallback without :has() for older browsers. Modern browsers use
-     :has() enhancement via body.has-sheet class (set by build.py JS). */
+     :has() enhancement via body.has-sheet class (set by build.py, HTML template). */
   body {
     position: relative;
     max-inline-size: min(880px, 100% - 2rem);
