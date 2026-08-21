@@ -111,7 +111,7 @@ Tüm görseller otomatik retro kağıt çerçeveye alınır (`figure` veya tek b
 **Canlı örnek — dokümandaki gibi görünür:**
 
 <figure>
-  <img src="../_attachments/ImageCompare.png" alt="Örnek görsel — ImageCompare 2.5.7 tek görüntü modu" />
+  <img src="_attachments/image-compare-single-view.png" alt="Örnek görsel — ImageCompare 2.5.7 tek görüntü modu" />
   <figcaption><span class="exhibit-label">GÖRSEL — Örnek</span> Tek görüntü modu (1494×1078 px). Üzerine gelince %0.5 büyür, tıklayınca lightbox %150 ile açılır — tekerlek/drag/pinch ile sadece resim hareket eder (caption sabit).</figcaption>
 </figure>
 
@@ -119,13 +119,13 @@ Tüm görseller otomatik retro kağıt çerçeveye alınır (`figure` veya tek b
 
 1. *Markdown tek satır* (otomatik çerçeve + lightbox):
 ```markdown
-![Alternatif metin](../_attachments/ImageCompare.png)
+![Alternatif metin](_attachments/image-compare-single-view.png)
 ```
 
 2. *Figür + açıklama* (tavsiye edilen, retro etiketiyle):
 ```html
 <figure>
-  <img src="../_attachments/ImageCompare.png" alt="ImageCompare 2.5.7 — Tek görüntü modunda BrowseComp.png" />
+  <img src="_attachments/image-compare-single-view.png" alt="ImageCompare 2.5.7 — Tek görüntü modunda BrowseComp.png" />
   <figcaption><span class="exhibit-label">GÖRSEL — ImageCompare 2.5.7</span> Tek görüntü modu. Üstte sekmeler, ortada grafik.</figcaption>
 </figure>
 ```
