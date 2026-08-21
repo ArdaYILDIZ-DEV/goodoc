@@ -71,6 +71,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # --- Misc ---
+# Agent documentation: project-local guidance, intentionally untracked.
+AGENTS.md
 .env
 .env.*
 !.env.example
