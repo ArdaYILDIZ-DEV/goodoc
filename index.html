@@ -116,7 +116,7 @@
     <ul class="contentTree">
   <li><button class="tree-folder" aria-expanded="true">docs</button>
 <ul class="contentTree">
-  <li><a href="build/docs/dokuman.html" class="tree-link">Proje Geliştirme Notları</a></li>
+  <li><a href="build/docs/dokuman.html" class="tree-link">Markdown Yazma Rehberi</a></li>
 </ul>
   </li>
 </ul>
@@ -126,8 +126,8 @@
   <main class="sheet site-main">
 
 <h1>Son <span class="yell">Eklenenler</span></h1>
-<p class="lede">Ana klasördeki index — build/ içindeki siteye yönlendirir. Son 1 belge aşağıda.</p>
-<p class="u-center"><a class="cta-angry" href="build/">Siteye git — build/index.html →</a></p>
+<p class="lede">Son 1 belge.</p>
+<p class="u-center"><a class="cta-angry" href="build/">Siteye git</a></p>
 
 <fieldset class="choice-group">
   <legend>Hızlı bakış</legend>
@@ -139,8 +139,8 @@
 
   <article class="recent-card">
     <div class="recent-meta"><span class="recent-folder">docs</span> • <span class="recent-date">2026-08-21</span></div>
-    <h3 class="recent-title"><a href="build/docs/dokuman.html">Proje Geliştirme Notları</a></h3>
-    <p class="recent-excerpt">Proje Geliştirme Notları Bu döküman, retro temalı Markdown çıktısının nasıl göründüğünü ve temadaki her bileşenin nasıl kullanılacağını tek bir yerde gösteren…</p>
+    <h3 class="recent-title"><a href="build/docs/dokuman.html">Markdown Yazma Rehberi</a></h3>
+    <p class="recent-excerpt">Markdown Yazma Rehberi Bu temada içerik üretmek için bilmen gereken her şey: her bölümde önce nasıl yazılacağı, hemen altında canlı sonucu. Nasıl Kullanılır ve…</p>
   </article>
 
 </div>
@@ -153,8 +153,8 @@
   var btn=document.querySelector('.sidebar-toggle');
   var bar=document.getElementById('sidebar');
   var ov=document.getElementById('sidebarOverlay');
-  function open(){bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true');}
-  function close(){bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false');}
+  function open(){bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden';}
+  function close(){bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); document.body.style.overflow='';}
   btn.addEventListener('click', function(){ bar.classList.contains('is-open') ? close() : open(); });
   ov.addEventListener('click', close);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
