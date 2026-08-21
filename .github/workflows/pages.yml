@@ -31,8 +31,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc
 
+      - name: Install Python dependencies
+        run: pip install pytest
+
+      - name: Run tests
+        run: pytest tests/ -v
+
       - name: Build site
         run: python build.py
+
+      - name: Verify build output
+        run: test -f build/index.html && test -f build/docs/dokuman.html && echo "build verified"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
