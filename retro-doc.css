@@ -1,0 +1,1230 @@
+/* ============================================================================
+   retro-doc.css — Retro dossier theme for goodoc
+   ============================================================================
+   Purpose
+   -------
+   Typewriter / classified-dossier visual language for Pandoc HTML exports.
+   Special Elite headings, JetBrains Mono body, ink-on-paper palette,
+   stamp-red accents and hard offset shadows. Works both as a raw Pandoc
+   <body> (no wrapper) and as an explicit <main class="sheet"> wrapper.
+
+   Architecture
+   ------------
+   Cascade Layers: @layer reset → variables → base → typography →
+   components → tables → code → utilities. Later layers win at equal
+   specificity. Unlayered pandoc-overrides at the end beat Pandoc's
+   injected unlayered rules (see that section's comment).
+
+   Table of Contents
+   -----------------
+   1. reset        — box-sizing, margin reset, selection
+   2. variables    — custom properties (colors, fonts, spacing, paper grain)
+   3. base         — page/sheet layout, grain, decorative stamp/scribble
+   4. typography   — headings (§/¶), lede, paragraphs, links, blockquote
+   5. components   — shout, cta, signature, footer, choice-group, task-list,
+   6.              — figure/lightbox, sidebar, recent cards, utilities
+   7. tables       — zebra, header, 100% width
+   8. code         — div.sourceCode + copy button, inline code
+   9. utilities    — u-center, u-muted, etc.
+   10. pandoc-overrides (unlayered) — win over Pandoc injected styles
+   11. responsive  — 900px sidebar drawer, 700px compact, 480px no-rotate
+
+   Usage
+   -----
+   Pandoc: pandoc doc.md -o doc.html --standalone -c retro-doc.css
+   build.py injects <link rel="stylesheet" href="retro-doc.css"> with a
+   path relative to each page depth. Fonts are loaded via HTML preconnect
+   (not @import) for performance — see notes below.
+
+   Font Loading (performance)
+   --------------------------
+   Previously used @import (render-blocking, ~400-800ms FCP penalty).
+   Now loaded via <link preconnect> in build.py template. Keep these tags
+   in <head> for best FCP:
+
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     <link rel="stylesheet"
+           href="https://fonts.googleapis.com/css2?family=Special+Elite&family=JetBrains+Mono:wght@400;500;700;800&display=swap">
+
+   Accessibility
+   -------------
+   Focus-visible outlines, reduced-motion media query, aria-expanded on
+   sidebar folders, pointer-events:none task-lists remain keyboard-visible.
+
+   Maintainer Notes
+   ----------------
+   - Keep !important overrides in pandoc-overrides unlayered and commented.
+   - Test at 320px, 900px, 1440px and with :has() unsupported browsers.
+   - See content/docs/dokuman.md for a live showcase of every component.
+   ============================================================================ */
+
+/* @import removed (M1) — fonts now via HTML preconnect */
+
+/* Cascade order: later layers win over earlier at equal specificity. */
+@layer reset, variables, base, typography, components, tables, code, utilities;
+
+/* ---------------------------------------------------------------- reset */
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  ::selection {
+    background: var(--ink);
+    color: var(--highlight);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------- variables */
+@layer variables {
+  :root {
+    --paper: #ede2c4;        /* page / desk */
+    --paper-alt: #fff7dc;    /* sheet / card */
+    --paper-shadow: #c9bd9b;
+    --ink: #15120e;
+    --ink-faded: #3d3830;
+    --stamp: #a82820;
+    --rule: #15120e33;
+    --highlight: #f5d547;    /* highlighter yellow */
+
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    --font-type: 'Special Elite', 'Courier New', cursive;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 14px;
+    --space-4: 22px;
+    --space-5: 32px;
+    --space-6: 56px;
+    --space-7: 96px;
+
+    /* Subtle paper grain (fractal noise, low alpha) reused on page + sheet. */
+    --paper-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.14 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+}
+
+/* ---------------------------------------------------------------- base */
+@layer base {
+  html {
+    min-block-size: 100vh;
+    overflow-x: clip;
+    background-color: var(--paper);
+    background-image:
+      radial-gradient(ellipse 400px 300px at 85% 15%, rgba(80, 50, 20, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 300px 200px at 10% 90%, rgba(80, 50, 20, 0.05) 0%, transparent 60%),
+      var(--paper-grain);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.98rem; /* 15.7px, scalable via rem */
+    line-height: 1.7;
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    font-variant-ligatures: common-ligatures;
+    hanging-punctuation: first;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Explicit sheet wrapper (reference HTML uses <main class="sheet">). */
+  .sheet {
+    position: relative;
+    max-inline-size: min(880px, 100% - 2rem);
+    margin-inline: auto;
+    margin-block: 0;
+    background-color: var(--paper-alt);
+    background-image: var(--paper-grain);
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: clamp(2rem, 5vw, 4.5rem) clamp(1.5rem, 6vw, 4rem) clamp(2.5rem, 6vw, 6.5rem);
+  }
+
+  /* Pandoc standalone output has no .sheet wrapper; make <body> the sheet.
+     C5: fallback without :has() for older browsers. Modern browsers use
+     :has() enhancement via body.has-sheet class (set by build.py JS). */
+  body {
+    position: relative;
+    max-inline-size: min(880px, 100% - 2rem);
+    margin-inline: auto;
+    margin-block: clamp(1rem, 4vw, 3rem);
+    background-color: var(--paper-alt);
+    background-image: var(--paper-grain);
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: clamp(2rem, 5vw, 4.5rem) clamp(1.5rem, 6vw, 4rem) clamp(2.5rem, 6vw, 6.5rem);
+  }
+  /* When a .sheet wrapper exists, body is the desk (paper) */
+  body.has-sheet {
+    max-inline-size: none;
+    margin: 0;
+    background-color: var(--paper);
+    background-image:
+      radial-gradient(ellipse 400px 300px at 85% 15%, rgba(80, 50, 20, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 300px 200px at 10% 90%, rgba(80, 50, 20, 0.05) 0%, transparent 60%),
+      var(--paper-grain);
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+  @supports selector(:has(*)) {
+    body:has(.sheet) {
+      max-inline-size: none;
+      margin: 0;
+      background-color: var(--paper);
+      background-image:
+        radial-gradient(ellipse 400px 300px at 85% 15%, rgba(80, 50, 20, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 300px 200px at 10% 90%, rgba(80, 50, 20, 0.05) 0%, transparent 60%),
+        var(--paper-grain);
+      border: none;
+      box-shadow: none;
+      padding: 0;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- typography */
+@layer typography {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-type);
+    color: var(--ink);
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+  }
+
+  h1 {
+    font-size: clamp(1.85rem, 5.2vw, 2.85rem);
+    line-height: 1.15;
+    margin-block: 0 1.5rem;
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 3.6vw, 1.75rem);
+    margin-block: 2.5rem 1.25rem;
+    text-wrap: balance;
+  }
+  h2::before {
+    content: "§ ";
+    color: var(--stamp);
+  }
+
+  h3 { font-size: clamp(1.15rem, 3vw, 1.35rem); margin-block: 2rem 1rem; }
+  h3::before {
+    content: "¶ ";
+    color: var(--stamp);
+  }
+  h4 { font-size: 1.05rem; margin-block: 1.5rem 0.75rem; }
+  h5, h6 { font-size: 0.95rem; margin-block: 1.25rem 0.5rem; }
+
+  p {
+    margin-block-end: 1.25rem;
+    max-inline-size: 75ch;
+    text-wrap: pretty;
+    hyphens: auto;
+    hyphenate-limit-chars: 6 3 2;
+  }
+  li {
+    text-wrap: pretty;
+  }
+
+  p strong {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 1px 6px;
+    font-weight: 700;
+  }
+
+  em { font-style: italic; }
+
+  .lede {
+    font-size: 1.1rem;
+    font-weight: 500;
+    max-inline-size: 65ch;
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+}
+
+/* ---------------------------------------------------------------- components */
+@layer components {
+  /* Links (keyboard-accessible focus added) */
+  a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--stamp);
+  }
+  a:hover {
+    color: var(--stamp);
+  }
+  a:focus-visible {
+    outline: 2px solid var(--stamp);
+    outline-offset: 2px;
+    background: var(--highlight);
+    color: var(--ink);
+  }
+
+  /* Highlights */
+  mark,
+  .marker {
+    background: var(--highlight);
+    color: var(--ink);
+    padding: 0 4px;
+    border-radius: 2px;
+    box-shadow: -2px 0 0 var(--highlight), 2px 0 0 var(--highlight);
+  }
+  .yell {
+    background: var(--stamp);
+    color: var(--paper-alt);
+    padding: 0 4px;
+    border-radius: 2px;
+    font-weight: 700;
+    box-shadow: -2px 0 0 var(--stamp), 2px 0 0 var(--stamp);
+  }
+  /* Prominent stamped accents inside the main headline. Wrap an accent word
+     in .yell, .marker, <mark>, or .stamp-accent to render it as a large,
+     eye-catching, retro red stamp (reference-site style). */
+  h1 .yell,
+  h1 .stamp-accent,
+  h1 mark,
+  h1 .marker {
+    color: var(--stamp);
+    background: transparent;
+    box-shadow: none;
+    display: inline-block;
+    font-weight: 700;
+    transform: rotate(-1.5deg);
+    transition: transform 0.2s ease;
+  }
+  h1:hover .yell,
+  h1:hover .stamp-accent,
+  h1:hover mark,
+  h1:hover .marker {
+    transform: rotate(1.5deg) scale(1.04);
+  }
+
+  /* Lists */
+  ul,
+  ol {
+    margin-block: 1.25rem;
+    padding-inline-start: 1.5rem;
+    max-inline-size: 75ch;
+  }
+  li {
+    margin-block-end: 0.5rem;
+  }
+
+  /* Signature "rules" ordered list (reference style) */
+  ol {
+    list-style: none;
+    padding-inline-start: 0;
+    counter-reset: rule;
+  }
+  ol li {
+    counter-increment: rule;
+    position: relative;
+    padding: var(--space-3) 0 var(--space-3) 3.5rem;
+    border-block-end: 1px dashed var(--rule);
+  }
+  ol li:last-child {
+    border-block-end: none;
+  }
+  ol li::before {
+    content: counter(rule, decimal-leading-zero);
+    position: absolute;
+    inset-block-start: 10px;
+    inset-inline-start: 0;
+    font-family: var(--font-type);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--stamp);
+  }
+  /* Nested lists fall back to normal markers */
+  ol ol,
+  ul ol {
+    list-style: decimal;
+    padding-inline-start: 1.5rem;
+  }
+  ol ol li,
+  ul ol li {
+    padding-inline-start: 0;
+    padding-block: 0.4rem;
+    border-block-end: none;
+  }
+  ol ol li::before,
+  ul ol li::before {
+    content: none;
+  }
+
+  /* Forms / interactive controls (radios, checkboxes, choice groups) */
+  fieldset {
+    min-inline-size: 0;
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: var(--space-4);
+    margin-block: 1.5rem;
+    background: var(--paper-alt);
+  }
+  legend {
+    font-family: var(--font-type);
+    font-size: 1.1rem;
+    padding: 0 0.5rem;
+    color: var(--ink);
+  }
+  .choice-group {
+    max-inline-size: 75ch;
+  }
+  .choice {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    margin-block-end: 0.25rem;
+    border: 1px dashed var(--rule);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  /* M7: .choice:hover removed — dead code because .choice has pointer-events:none (display-only per dokuman.md) */
+  .choice:has(input:focus-visible) {
+    outline: 2px solid var(--stamp);
+    outline-offset: 2px;
+  }
+  input[type="radio"],
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    margin: 0;
+    border: 2px solid var(--ink);
+    background-color: var(--paper-alt);
+    cursor: pointer;
+    position: relative;
+    flex: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  input[type="radio"] { border-radius: 50%; }
+  input[type="checkbox"] { border-radius: 2px; }
+  /* Indicator is drawn with background-image, NOT ::after/::before: pseudo
+     elements are NOT rendered on <input> (replaced) elements in browsers. */
+  input[type="radio"]:checked {
+    background-color: var(--ink);
+    border-color: var(--ink);
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Ccircle%20cx='12'%20cy='12'%20r='6'%20fill='%23f5d547'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 55%;
+  }
+  input[type="checkbox"]:checked {
+    background-color: var(--ink);
+    border-color: var(--ink);
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23f5d547'%20stroke-width='3.5'%20stroke-linecap='square'%20stroke-linejoin='miter'%3E%3Cpolyline%20points='5%2012%2010%2017%2019%207'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 62%;
+  }
+  input[type="radio"]:focus-visible,
+  input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--stamp);
+    outline-offset: 2px;
+  }
+
+  /* Display-only status: the page shows the status (set in the source via
+     `checked`), but visitors must NOT change it on the site. Locked with CSS
+     (pointer-events: none on .choice) plus tabindex="-1" on the inputs, so no
+     `disabled` attribute is needed and the look stays normal. */
+  .choice {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  /* Pandoc task lists (- [ ] / - [x]) — same display-only lock as choice-group.
+     Pandoc generates <ul class="task-list"><li><label><input type="checkbox"> text</label></li></ul>.
+     Gap is controlled via input margin-inline-end; label stays inline for natural wrapping. */
+  ul.task-list {
+    list-style: none;
+    padding-inline-start: 0;
+    margin-block: 1rem 1.5rem;
+    max-inline-size: 75ch;
+  }
+  ul.task-list li {
+    padding: 0.32rem 0;
+    margin-block-end: 0.15rem;
+    border: none;
+    pointer-events: none;
+    cursor: default;
+    line-height: 1.55;
+  }
+  ul.task-list li label {
+    display: inline;
+    cursor: default;
+    line-height: 1.55;
+  }
+  ul.task-list li input[type="checkbox"] {
+    pointer-events: none;
+    cursor: default;
+    vertical-align: -0.12em;
+    margin-inline-end: 0.55rem;
+  }
+
+  /* Blockquote */
+  blockquote {
+    margin: var(--space-5) 0;
+    padding: var(--space-4) 26px;
+    max-inline-size: 75ch;
+    background: var(--paper);
+    border-inline-start: 5px solid var(--stamp);
+    color: var(--ink-faded);
+    position: relative;
+    box-shadow: 3px 4px 0 var(--paper-shadow);
+    transform: rotate(-0.3deg);
+  }
+  blockquote p:last-child {
+    margin-block-end: 0;
+  }
+  blockquote em {
+    display: block;
+    margin-top: var(--space-3);
+    font-style: normal;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  blockquote em::before {
+    content: "> ";
+    color: var(--stamp);
+  }
+  blockquote .exhibit-label {
+    display: block;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: var(--stamp);
+    margin-bottom: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-block-start: 2px dashed var(--ink);
+    margin-block: 2.5rem;
+  }
+
+
+  /* Shout box */
+  .shout {
+    margin: 48px 0;
+    padding: var(--space-5);
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-type);
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    line-height: 1.15;
+    text-align: center;
+    transform: rotate(-0.5deg);
+    box-shadow: 4px 6px 0 var(--stamp);
+  }
+  .shout span { color: var(--highlight); }
+
+  /* URL tag button */
+  .url-tag-big {
+    display: inline-block;
+    background: var(--highlight);
+    color: var(--ink);
+    padding: var(--space-2) 18px;
+    font-family: var(--font-type);
+    font-size: 1.6rem;
+    font-weight: 700;
+    transform: rotate(-1deg);
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .url-tag-big:hover {
+    transform: rotate(-1deg) translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .url-tag-big:active {
+    translate: 2px 2px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  /* CTAs */
+  .cta-angry,
+  .cta-calm {
+    display: inline-block;
+    color: var(--paper-alt);
+    padding: var(--space-2) 18px;
+    font-family: var(--font-type);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    border: 2px solid var(--ink);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .cta-angry {
+    background: var(--stamp);
+    transform: rotate(0.6deg);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .cta-angry:hover {
+    transform: rotate(0.6deg) translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--ink);
+    color: var(--paper-alt);
+  }
+  .cta-calm {
+    background: #2f6b4a;
+    transform: rotate(-0.6deg);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .cta-calm:hover {
+    transform: rotate(-0.6deg) translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--ink);
+    color: var(--paper-alt);
+  }
+  .cta-angry:active,
+  .cta-calm:active {
+    translate: 2px 2px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  /* Signature & footer */
+  .signature {
+    margin-top: var(--space-7);
+    padding-top: 28px;
+    border-block-start: 2px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .signature .name {
+    font-family: var(--font-type);
+    font-size: 1.2rem;
+  }
+  .signature small {
+    font-size: 0.72rem;
+    color: var(--ink-faded);
+    letter-spacing: 0.05em;
+    max-inline-size: 38ch;
+    text-align: end;
+  }
+  .footer {
+    text-align: center;
+    margin-top: var(--space-6);
+    font-size: 0.75rem;
+    color: var(--ink-faded);
+    letter-spacing: 0.04em;
+  }
+  .footer p {
+    max-inline-size: none;
+    margin-block-end: var(--space-2);
+  }
+
+  /* Decorative stamp & scribble (reference flavor) */
+  .stamp {
+    position: absolute;
+    inset-block-start: 50px;
+    inset-inline-end: 24px;
+    transform: rotate(-11deg);
+    border: 5px solid var(--stamp);
+    color: var(--stamp);
+    padding: 10px 22px 8px;
+    font-family: var(--font-type);
+    font-size: 1.8rem;
+    letter-spacing: 0.08em;
+    opacity: 0.82;
+    text-transform: uppercase;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    line-height: 1;
+  }
+  .scribble {
+    position: absolute;
+    font-family: var(--font-type);
+    color: var(--stamp);
+    font-size: 0.9rem;
+    transform: rotate(-8deg);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .scribble-1 { inset-block-start: 380px; inset-inline-end: 4px; }
+  .scribble-2 { inset-block-start: 920px; inset-inline-start: -10px; transform: rotate(6deg); }
+}
+
+/* ---------------------------------------------------------------- tables */
+@layer tables {
+  /* width:100% + max-width:100% makes the table fill the content area
+     cleanly; auto layout distributes columns to fill (no right-edge gap),
+     and border-collapse now applies because the table is a real table box.
+     Long content wraps inside cells instead of overflowing the container. */
+  table {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    border-collapse: collapse;
+    margin-block: 1.5rem;
+    font-size: 0.94rem;
+    line-height: 1.55;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  caption {
+    caption-side: bottom;
+    font-size: 0.85rem;
+    color: var(--ink-faded);
+    padding: 0.5rem;
+    text-align: center;
+  }
+  th,
+  td {
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--ink);
+    text-align: start;
+    vertical-align: top;
+  }
+  thead th {
+    background: var(--ink);
+    color: var(--paper-alt);
+    font-family: var(--font-type);
+    letter-spacing: 0.02em;
+  }
+  tbody tr:nth-child(even) {
+    background: rgba(21, 18, 14, 0.04);
+  }
+  tbody tr:hover {
+    background: var(--highlight);
+  }
+}
+
+/* ---------------------------------------------------------------- code */
+@layer code {
+  code {
+    font-family: var(--font-mono);
+    background: #e7dcb8;
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.92em;
+    border: 1px solid #d8c89b;
+    font-variant-ligatures: none;
+    hyphens: none;
+    overflow-wrap: break-word;
+  }
+  pre {
+    position: relative;
+    max-width: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    /* Top/right clearance so the pinned copy button never covers code text. */
+    padding: 2.6rem 2.6rem 1rem 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    margin-block: 1.4rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    tab-size: 4;
+    font-variant-ligatures: none;
+    hyphens: none;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    border: none;
+    padding: 0;
+    font-size: 1em;
+  }
+  /* Preserve Pandoc sourceCode spacing; relative + visible so a .copy-btn
+     stays pinned to the top-right corner and is never clipped. */
+  div.sourceCode {
+    position: relative;
+    max-width: 100%;
+    overflow: visible;
+    margin-block: 1.4rem;
+  }
+
+  /* Copy button for code blocks. A small script (see dokuman.md) injects a real
+     <button class="copy-btn"> into EVERY div.sourceCode (hand-written or
+     Pandoc's native highlighted blocks), so the button is uniform and the icon
+     can animate on click. The icon is a minimalist clipboard SVG (no text, no
+     emoji); on click it swaps to a checkmark for 2 seconds. */
+  .copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    display: inline-grid;
+    place-items: center;
+    inline-size: 1.9rem;
+    block-size: 1.9rem;
+    padding: 0;
+    background-color: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    color: var(--paper-alt);
+    cursor: pointer;
+    overflow: hidden;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  }
+  .copy-btn:hover {
+    background-color: var(--stamp);
+    border-color: var(--stamp);
+  }
+  .copy-btn:focus-visible {
+    outline: 2px solid var(--stamp);
+    outline-offset: 2px;
+  }
+  .copy-btn:active {
+    translate: 1px 1px;
+  }
+  .copy-btn .ic {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    inline-size: 58%;
+    block-size: 58%;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .copy-btn .ic-check {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  .copy-btn.is-copied {
+    color: var(--highlight);
+  }
+  .copy-btn.is-copied .ic-copy {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  .copy-btn.is-copied .ic-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------------------------------------------------------------- utilities */
+@layer utilities {
+  .u-center { text-align: center; max-inline-size: none; }
+  .u-muted { color: var(--ink-faded); }
+  .u-small { font-size: 0.88rem; }
+  .u-mt-lg { margin-block-start: var(--space-5); }
+  .u-mt-md { margin-block-start: var(--space-4); }
+  .u-mb-0 { margin-block-end: 0; }
+
+  img,
+  video,
+  svg,
+  canvas {
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+
+  /* Retro framed figures — outer ink border + hard shadow + slight tilt, like fieldset/blockquote */
+  figure {
+    margin-block: 1.8rem;
+    padding: 10px 10px 8px;
+    background: var(--paper-alt);
+    border: 2px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+    transform: rotate(-0.25deg);
+    max-inline-size: 100%;
+  }
+  figure img {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+  }
+  figcaption {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink-faded);
+    margin-top: 0.6rem;
+    text-align: center;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+  /* Standalone markdown images (not in <figure>) — same retro frame */
+  p > img:only-child,
+  li > img:only-child,
+  p > a:only-child > img:only-child {
+    display: block;
+    margin-block: 1.5rem;
+    padding: 8px;
+    background: var(--paper-alt);
+    border: 2px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+    transform: rotate(-0.2deg);
+  }
+  figure img,
+  p > img:only-child,
+  li > img:only-child {
+    cursor: zoom-in;
+    transition: transform 0.22s cubic-bezier(0.34, 1.15, 0.64, 1), filter 0.2s ease;
+  }
+  figure img:hover,
+  p > img:only-child:hover,
+  li > img:only-child:hover {
+    transform: scale(1.005);
+    filter: brightness(1.01);
+  }
+
+  /* Lightbox — retro modal for image zoom — only the image moves, caption stays */
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(21, 18, 14, 0.88);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.4rem 1.4rem;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.24s ease, visibility 0.24s ease;
+  }
+  .lightbox-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .lightbox-frame {
+    background: var(--paper-alt);
+    border: 3px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--ink);
+    padding: 12px 12px 10px;
+    max-width: min(92vw, 1120px);
+    max-height: 92vh;
+    transform: rotate(-0.5deg) scale(0.92);
+    transition: transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: visible;
+    margin: 20px;
+  }
+  .lightbox-overlay.is-open .lightbox-frame {
+    transform: rotate(-0.25deg) scale(1);
+  }
+  .lightbox-viewport {
+    position: relative;
+    overflow: hidden;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    width: min(86vw, 1100px);
+    height: min(74vh, 780px);
+    max-width: 100%;
+    display: grid;
+    place-items: center;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+  .lightbox-viewport.is-grabbing { cursor: grabbing; }
+  .lightbox-viewport img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    cursor: inherit;
+    will-change: transform;
+    transform-origin: center center;
+    transition: transform 0.12s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .lightbox-viewport img.is-dragging { transition: none; }
+  .lightbox-caption {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink-faded);
+    text-align: center;
+    margin-top: 0.65rem;
+    line-height: 1.4;
+    max-width: 70ch;
+    pointer-events: none;
+  }
+  .lightbox-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0.55rem;
+    padding: 6px 8px;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+    transform: rotate(-0.2deg);
+  }
+  .lightbox-toolbar button {
+    width: 32px;
+    height: 28px;
+    background: var(--paper-alt);
+    border: 1px solid var(--ink);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .lightbox-toolbar button:hover { background: var(--highlight); }
+  .lightbox-toolbar button:active { transform: translate(1px, 1px); }
+  .lb-zoom-level {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    min-width: 3.4rem;
+    text-align: center;
+    color: var(--ink-faded);
+  }
+  .lightbox-close {
+    position: absolute;
+    top: -22px;
+    right: -22px;
+    width: 40px;
+    height: 40px;
+    background: var(--stamp);
+    background-image: radial-gradient(ellipse at 32% 28%, rgba(255,255,255,0.18), transparent 58%), var(--paper-grain);
+    background-blend-mode: overlay;
+    color: var(--paper-alt);
+    border: 2px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink), inset 0 0 0 1px rgba(255,247,220,0.32);
+    font-family: var(--font-mono);
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 1px 0;
+    transform: rotate(3.5deg);
+    transition: transform 0.15s ease, background 0.15s ease, filter 0.15s ease;
+    z-index: 20;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.28), 0 0 6px rgba(0,0,0,0.22);
+    letter-spacing: 0;
+  }
+  .lightbox-close::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border: 1px dashed rgba(255,247,220,0.45);
+    pointer-events: none;
+  }
+  .lightbox-close:hover { transform: rotate(3.5deg) scale(1.08); background: #c03028; filter: contrast(1.06); }
+  .lightbox-close:active { transform: rotate(3.5deg) scale(0.95); }
+
+  /* Site layout — sidebar + main (contentTree) */
+  .site-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.6rem;
+    max-inline-size: min(1200px, 100% - 2rem);
+    margin-inline: auto;
+    margin-block: clamp(1rem, 4vw, 2.2rem);
+  }
+  .sidebar {
+    flex: 0 0 260px;
+    position: sticky;
+    top: 1.2rem;
+    max-height: calc(100vh - 2.4rem);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink) var(--paper);
+    background: var(--paper-alt);
+    background-image: var(--paper-grain);
+    border: 2px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+    padding: 1rem 0.9rem 0.8rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .sidebar-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+    font-family: var(--font-type);
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.7rem;
+  }
+  .sidebar-head-text { flex: 1; min-width: 0; }
+  .sidebar-title { display: block; font-size: 1.15rem; letter-spacing: 0.02em; }
+  .sidebar-sub { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faded); margin-top: 2px; }
+  .sidebar-home {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    background: var(--stamp);
+    color: var(--paper-alt);
+    border: 1.5px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 0.32rem 0.55rem;
+    transform: rotate(-1.2deg);
+    transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .sidebar-home:hover { background: #c03028; transform: rotate(-1.2deg) translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); color: var(--paper-alt); }
+  .sidebar-home:active { transform: rotate(-1.2deg) translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+  .sidebar-foot { margin-top: 1rem; padding-top: 0.6rem; border-top: 1px dashed var(--rule); font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faded); text-align: center; letter-spacing: 0.04em; }
+  .contentTree, .contentTree ul { list-style: none; padding: 0; margin: 0; }
+  .contentTree ul { padding-left: 1rem; border-left: 1px dashed var(--rule); margin-left: 0.35rem; margin-block: 0.25rem; }
+  .contentTree li { margin: 0.12rem 0; }
+  .contentTree a { display: block; padding: 0.28rem 0.5rem; border-radius: 2px; text-decoration: none; border: 1px solid transparent; text-underline-offset: 0; }
+  .contentTree a:hover { background: var(--highlight); border-color: var(--stamp); color: var(--ink); }
+  .contentTree a.is-active { background: var(--ink); color: var(--paper-alt); border-color: var(--ink); font-weight: 700; }
+  .contentTree .tree-folder {
+    display: flex; align-items: center; gap: 0.3rem;
+    width: 100%; text-align: left;
+    background: transparent; border: 1px solid transparent;
+    font-family: var(--font-type); font-size: 0.88rem; color: var(--ink-faded);
+    padding: 0.25rem 0.5rem; margin-top: 0.4rem;
+    cursor: pointer; border-radius: 2px;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .contentTree .tree-folder:hover { background: var(--highlight); border-color: var(--stamp); color: var(--ink); }
+  .contentTree .tree-folder:focus-visible { outline: 2px solid var(--stamp); outline-offset: 2px; }
+  .contentTree .tree-folder::before { content: "▸"; color: var(--stamp); font-size: 0.8rem; transition: transform 0.15s ease; display: inline-block; }
+  .contentTree .tree-folder[aria-expanded="true"]::before { transform: rotate(90deg); }
+  .contentTree .tree-folder + ul { display: none; }
+  .contentTree .tree-folder[aria-expanded="true"] + ul { display: block; }
+  .site-main { flex: 1; min-width: 0; }
+  .site-main.sheet { margin: 0; max-inline-size: none; }
+  .recent-list { display: grid; gap: 1rem; margin-block: 1.5rem; }
+  .recent-card { background: var(--paper); border: 1px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 1rem 1.1rem; transform: rotate(-0.15deg); }
+  .recent-card:nth-child(even) { transform: rotate(0.15deg); }
+  .recent-meta { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faded); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.35rem; }
+  .recent-title { font-family: var(--font-type); font-size: 1.18rem; margin: 0 0 0.35rem; line-height: 1.25; }
+  .recent-title a { text-decoration: none; border: none; }
+  .recent-title a:hover { color: var(--stamp); text-decoration: underline; text-decoration-color: var(--stamp); }
+  .recent-excerpt { font-size: 0.9rem; color: var(--ink-faded); margin: 0; line-height: 1.5; }
+  .recent-folder { color: var(--stamp); font-weight: 700; }
+  .sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 0.7rem; left: 0.7rem;
+    z-index: 1000;
+    width: 42px; height: 42px;
+    background: var(--paper-alt);
+    border: 2px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 1.3rem; line-height: 1;
+    cursor: pointer;
+    place-items: center;
+  }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(21,18,14,0.45); backdrop-filter: blur(1px); z-index: 998; }
+  .sidebar-overlay.is-open { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  @media (max-width: 700px) {
+    blockquote { padding: 16px 18px; }
+    ol li { padding-inline-start: 2.75rem; }
+    ol li::before { font-size: 1.3rem; }
+    .scribble { display: none; }
+    .shout { padding: 24px 18px; }
+  }
+  @media (max-width: 900px) {
+    .site-wrap { flex-direction: column; gap: 1rem; max-inline-size: min(100% - 1.2rem, 100% - 1.2rem); margin-block: 0.8rem; }
+    .sidebar { position: fixed; inset: 0 auto 0 0; width: min(82vw, 300px); max-height: none; height: 100dvh; height: 100vh; z-index: 999; transform: translateX(-102%); transition: transform 0.24s ease; overflow-y: auto; border-right: 2px solid var(--ink); box-shadow: 6px 0 0 var(--ink); }
+    .sidebar.is-open { transform: translateX(0); }
+    .sidebar-toggle { display: grid; }
+    .site-main { width: 100%; }
+    .site-main.sheet { padding: clamp(1.2rem, 5vw, 2rem) clamp(1rem, 5vw, 1.6rem); }
+  }
+  /* M8: Disable rotation on narrow viewports to prevent 320px horizontal overflow (D3) */
+  @media (max-width: 480px) {
+    .recent-card, .recent-card:nth-child(even), .sheet { transform: none; }
+    .sheet { box-shadow: 4px 4px 0 var(--ink); }
+  }
+}
+
+/* ---------------------------------------------------------------- pandoc-overrides (UNLAYERED, intentionally) */
+/* `pandoc --standalone` injects its own unlayered syntax-highlighting
+   <style> block into <head>, *before* this linked stylesheet. Per the CSS
+   Cascade Layers spec, ANY unlayered rule beats a layered rule of equal or
+   even higher specificity, no matter the source order — so the
+   `div.sourceCode { overflow: auto; margin: 1em 0; }` that Pandoc emits
+   would silently win over the `@layer code` rules above, regardless of how
+   they're written. The fix is to also declare these properties unlayered
+   here; between two unlayered rules, higher specificity (or equal-
+   specificity + later source order) wins, and this stylesheet loads after
+   Pandoc's inline <style>, so it wins either way. This keeps the copy
+   button correctly un-clipped and the block spacing consistent with the
+   rest of the layout.
+
+   A second, easy-to-miss instance of the same problem: Pandoc's own
+   `<pre class="sourceCode bash">` etc. carries the class "sourceCode" too,
+   so Pandoc's unlayered `.sourceCode { overflow: visible; }` rule was
+   silently overriding our layered `pre { overflow-x: auto; }` on every
+   highlighted block — which let long code lines blow out past the sheet
+   instead of scrolling inside the block, causing real horizontal-scroll
+   overflow on narrow viewports. Fixed with the higher-specificity,
+   unlayered `pre.sourceCode` rule below. */
+div.sourceCode {
+  overflow: visible;
+  margin: 1.4rem 0;
+}
+pre.sourceCode {
+  overflow-x: auto;
+}
+/* Task-list override: beat Pandoc's injected unlayered rule
+   `ul.task-list li input[type="checkbox"] { width:0.8em; margin:0 0.8em ... }`
+   and enforce retro 1.15rem checkbox + display-only lock (like .choice). */
+ul.task-list li input[type="checkbox"] {
+  inline-size: 1.15rem !important;
+  block-size: 1.15rem !important;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  margin: 0 !important;
+  margin-inline-end: 0.55rem !important;
+  flex: none !important;
+  pointer-events: none !important;
+  cursor: default !important;
+  vertical-align: -0.12em !important;
+}
+ul.task-list li {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+ul.task-list li input[type="checkbox"]:focus-visible {
+  outline: none !important;
+}
