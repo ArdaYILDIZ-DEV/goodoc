@@ -1,68 +1,6 @@
-/* ============================================================================
-   retro-doc.css — Retro dossier theme for goodoc
-   ============================================================================
-   Purpose
-   -------
-   Typewriter / classified-dossier visual language for Pandoc HTML exports.
-   Special Elite headings, JetBrains Mono body, ink-on-paper palette,
-   stamp-red accents and hard offset shadows. Works both as a raw Pandoc
-   <body> (no wrapper) and as an explicit <main class="sheet"> wrapper.
-
-   Architecture
-   ------------
-   Cascade Layers: @layer reset → variables → base → typography →
-   components → tables → code → utilities. Later layers win at equal
-   specificity. Unlayered pandoc-overrides at the end beat Pandoc's
-   injected unlayered rules (see that section's comment).
-
-   Table of Contents
-   -----------------
-   1. reset        — box-sizing, margin reset, selection
-   2. variables    — custom properties (colors, fonts, spacing, paper grain)
-   3. base         — page/sheet layout, grain, decorative stamp/scribble
-   4. typography   — headings (§/¶), lede, paragraphs, links, blockquote
-   5. components   — shout, cta, signature, footer, choice-group, task-list,
-   6.              — figure/lightbox, sidebar, recent cards, utilities
-   7. tables       — zebra, header, 100% width
-   8. code         — div.sourceCode + copy button, inline code
-   9. utilities    — u-center, u-muted, etc.
-   10. pandoc-overrides (unlayered) — win over Pandoc injected styles
-   11. responsive  — 900px sidebar drawer, 700px compact, 480px no-rotate
-
-   Usage
-   -----
-   Pandoc: pandoc doc.md -o doc.html --standalone -c retro-doc.css
-   build.py injects <link rel="stylesheet" href="retro-doc.css"> with a
-   path relative to each page depth. Fonts are loaded via HTML preconnect
-   (not @import) for performance — see notes below.
-
-   Font Loading (performance)
-   --------------------------
-   Previously used @import (render-blocking, ~400-800ms FCP penalty).
-   Now loaded via <link preconnect> in build.py template. Keep these tags
-   in <head> for best FCP:
-
-     <link rel="preconnect" href="https://fonts.googleapis.com">
-     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-     <link rel="stylesheet"
-           href="https://fonts.googleapis.com/css2?family=Special+Elite&family=JetBrains+Mono:wght@400;500;700;800&display=swap">
-
-   Accessibility
-   -------------
-   Focus-visible outlines, reduced-motion media query, aria-expanded on
-   sidebar folders, pointer-events:none task-lists remain keyboard-visible.
-
-   Maintainer Notes
-   ----------------
-   - Keep !important overrides in pandoc-overrides unlayered and commented.
-   - Test at 320px, 900px, 1440px and with :has() unsupported browsers.
-   - See content/docs/dokuman.md for a live showcase of every component.
-   ============================================================================ */
-
-/* @import removed (M1) — fonts now via HTML preconnect */
-
-/* Cascade order: later layers win over earlier at equal specificity. */
-@layer reset, variables, base, typography, components, tables, code, utilities;
+/* retro-doc.css — retro dossier theme for Pandoc HTML output.
+   Layer order: reset -> variables -> base -> typography -> components
+   -> tables -> code -> utilities. Pandoc overrides stay unlayered on purpose. */
 
 /* ---------------------------------------------------------------- reset */
 @layer reset {
@@ -153,7 +91,7 @@
   }
 
   /* Pandoc standalone output has no .sheet wrapper; make <body> the sheet.
-     C5: fallback without :has() for older browsers. Modern browsers use
+     Fallback without :has() for older browsers. Modern browsers use
      :has() enhancement via body.has-sheet class (set by build.py JS). */
   body {
     position: relative;
@@ -398,7 +336,6 @@
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease;
   }
-  /* M7: .choice:hover removed — dead code because .choice has pointer-events:none (display-only per dokuman.md) */
   .choice:has(input:focus-visible) {
     outline: 2px solid var(--stamp);
     outline-offset: 2px;
@@ -1170,7 +1107,7 @@
     .site-main { width: 100%; }
     .site-main.sheet { padding: clamp(1.2rem, 5vw, 2rem) clamp(1rem, 5vw, 1.6rem); }
   }
-  /* M8: Disable rotation on narrow viewports to prevent 320px horizontal overflow (D3) */
+  /* No tilt/hard-shadow offset under 480px: prevents horizontal overflow at 320px. */
   @media (max-width: 480px) {
     .recent-card, .recent-card:nth-child(even), .sheet { transform: none; }
     .sheet { box-shadow: 4px 4px 0 var(--ink); }
