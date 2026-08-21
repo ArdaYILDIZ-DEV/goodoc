@@ -288,7 +288,14 @@ class TestResolveAttachment:
         md = tmp_path / "doc.md"
         md.write_text("# hi")
         out = tmp_path / "out.html"
-        for src in ["https://example.com/img.png", "http://x/img.png", "data:image/png;base64,abc", "#anchor", "/absolute/path.png"]:
+        skip_srcs = [
+            "https://example.com/img.png",
+            "http://x/img.png",
+            "data:image/png;base64,abc",
+            "#anchor",
+            "/absolute/path.png",
+        ]
+        for src in skip_srcs:
             found, new = build.resolve_attachment(md, src, out)
             assert found is None and new is None, f"should skip {src}"
 

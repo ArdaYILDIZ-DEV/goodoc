@@ -31,12 +31,23 @@ SIDEBAR_SCRIPT = """\
   var btn=document.querySelector('.sidebar-toggle');
   var bar=document.getElementById('sidebar');
   var ov=document.getElementById('sidebarOverlay');
-  function open(){bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden';}
-  function close(){bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); document.body.style.overflow='';}
+  function open(){
+    bar.classList.add('is-open'); ov.classList.add('is-open');
+    btn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden';
+  }
+  function close(){
+    bar.classList.remove('is-open'); ov.classList.remove('is-open');
+    btn.setAttribute('aria-expanded','false'); document.body.style.overflow='';
+  }
   btn.addEventListener('click', function(){ bar.classList.contains('is-open') ? close() : open(); });
   ov.addEventListener('click', close);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
-  document.querySelectorAll('.tree-folder').forEach(function(b){ b.addEventListener('click', function(){ var e=b.getAttribute('aria-expanded')==='true'; b.setAttribute('aria-expanded', e?'false':'true'); }); });
+  document.querySelectorAll('.tree-folder').forEach(function(b){
+    b.addEventListener('click', function(){
+      var e=b.getAttribute('aria-expanded')==='true';
+      b.setAttribute('aria-expanded', e?'false':'true');
+    });
+  });
 })();"""
 
 PRECONNECT_LINKS = """<link rel="preconnect" href="https://fonts.googleapis.com">
@@ -167,7 +178,8 @@ def render_tree(node: dict, current_html: Path, prefix: Path = Path(".")) -> str
                 try:
                     most_recent = sorted(md_files_global, key=lambda p: p.stat().st_mtime, reverse=True)[0]
                     most_rel = most_recent.relative_to(CONTENT).parent
-                    if most_rel != Path(".") and (most_rel == dir_path or str(most_rel).startswith(str(dir_path) + "/")):
+                    under = most_rel == dir_path or str(most_rel).startswith(str(dir_path) + "/")
+                    if most_rel != Path(".") and under:
                         expanded = True
                 except Exception:
                     pass
@@ -295,7 +307,9 @@ def render_recent_cards(md_list: list[Path], link_base: Path, link_prefix: str =
         folder = html.escape(str(rel.parent) if rel.parent != Path(".") else "content")
         parts.append(
             f'  <article class="recent-card">\n'
-            f'    <div class="recent-meta"><span class="recent-folder">{folder}</span> \u2022 <span class="recent-date">{date}</span></div>\n'
+            f'    <div class="recent-meta">'
+            f'<span class="recent-folder">{folder}</span> \u2022 '
+            f'<span class="recent-date">{date}</span></div>\n'
             f'    <h3 class="recent-title"><a href="{href}">{title_esc}</a></h3>\n'
             f'    <p class="recent-excerpt">{excerpt_esc}</p>\n'
             f'  </article>'
@@ -496,7 +510,11 @@ def main(argv: list[str] | None = None) -> None:
         try:
             with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as tf:
                 tmp = Path(tf.name)
-            cmd = ["pandoc", str(md), "-o", str(tmp), "--standalone", "-c", "retro-doc.css", "--metadata", f"title={title}"]
+            cmd = [
+                "pandoc", str(md), "-o", str(tmp),
+                "--standalone", "-c", "retro-doc.css",
+                "--metadata", f"title={title}",
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if result.returncode != 0:
                 print(f"pandoc failed for {md}: {result.stderr}")
@@ -541,7 +559,10 @@ def main(argv: list[str] | None = None) -> None:
             return m.group(0)
 
         body_inner = re.sub(r'((?:src|href)\s*=\s*)(["\'])([^"\']+)\2', repl_attr, body_inner)
-        body_fixed = body_inner.replace('src="lightbox.js"', f'src="{js_rel}"').replace("src='lightbox.js'", f"src='{js_rel}'")
+        body_fixed = (
+            body_inner.replace('src="lightbox.js"', f'src="{js_rel}"')
+            .replace("src='lightbox.js'", f"src='{js_rel}'")
+        )
 
         sidebar_tree = render_tree(tree, out)
         doc_title_match = re.search(r"<title>(.*?)</title>", raw, re.DOTALL)
@@ -602,8 +623,13 @@ def main(argv: list[str] | None = None) -> None:
 
 <fieldset class="choice-group">
   <legend>Hızlı bakış</legend>
-  <label class="choice"><input type="radio" name="recent" value="all" checked tabindex="-1"> {len(md_files)} belge</label>
-  <label class="choice"><input type="radio" name="recent" value="attach" tabindex="-1"> _attachments/ klasörlerinde {total_images} resim</label>
+  <label class="choice">
+    <input type="radio" name="recent" value="all" checked tabindex="-1"> {len(md_files)} belge
+  </label>
+  <label class="choice">
+    <input type="radio" name="recent" value="attach" tabindex="-1">
+    _attachments/ klasörlerinde {total_images} resim
+  </label>
 </fieldset>
 
 <div class="recent-list">

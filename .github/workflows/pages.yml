@@ -33,7 +33,10 @@ jobs:
           sudo apt-get install -y pandoc
 
       - name: Install Python dependencies
-        run: pip install pytest
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
 
       - name: Run tests
         run: pytest tests/ -v
