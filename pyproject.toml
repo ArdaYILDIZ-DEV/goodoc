@@ -21,7 +21,7 @@ python_functions = ["test_*"]
 addopts = "-q"
 
 [tool.coverage.run]
-source = ["build"]
+source = ["."]
 omit = ["tests/*"]
 
 [tool.ruff]

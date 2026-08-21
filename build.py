@@ -316,7 +316,7 @@ def build_page_shell(
     """Assemble a complete HTML document from parts."""
     title_esc = html.escape(title)
     return f"""<!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
