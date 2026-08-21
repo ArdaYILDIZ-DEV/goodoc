@@ -1,20 +1,20 @@
 <p align="center">
-  <strong>goodoc</strong>
+  <img src="docs/images/goodoc-main.png" alt="goodoc — retro tema önizleme" width="900">
 </p>
 
 <p align="center">
-  notlarımı tek yerde toplamak için yaptığım ufak bir site derleyici — markdown yazıyorum, pandoc çeviriyor, retro tema giydiriyor.
+  <strong>Markdown içeriği pandoc ile statik, retro temalı doküman sitesine dönüştüren derleyici.</strong>
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white">
-  <img alt="pandoc" src="https://img.shields.io/badge/pandoc-gerekiyor-0A2A4A">
-  <img alt="MIT" src="https://img.shields.io/badge/license-MIT-green.svg">
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white">
+  <img alt="pandoc gerekiyor" src="https://img.shields.io/badge/pandoc-gerekiyor-0A2A4A">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
 </p>
 
-Pandoc'u seviyorum ama her seferinde aynı HTML'leri elle toparlamak yoruyordu. goodoc, `content/` klasörüne attığım `.md` dosyalarını alıp `build/` içinde hazır siteye çeviriyor. Sidebar, görsel büyütme falan hep içinde, ben sadece yazıyorum.
+goodoc, `content/` dizinine eklenen Markdown dosyalarını tarar, her birini `pandoc` ile HTML'e dönüştürür ve `build/` dizininde kenar çubuğu, görsel büyütme ve retro tema desteğine sahip statik bir site üretir. Sayfa iskeleti, gezinme ağacı ve varlık (attachment) yönetimi derleyici tarafından otomatik olarak oluşturulur; kullanıcının yapması gereken yalnızca Markdown yazmaktır.
 
-Demo / tema kataloğu için `content/docs/dokuman.md` dosyasına bak — orası bütün bileşenlerin canlı örneği.
+Bileşenlerin tam kataloğu için `content/docs/dokuman.md` dosyasına bakılabilir; başlıklar, tablolar, kod blokları, alıntılar ve görsellerin canlı örnekleri bu dosyada yer alır.
 
 ## Hızlı başlangıç
 
@@ -22,29 +22,47 @@ Demo / tema kataloğu için `content/docs/dokuman.md` dosyasına bak — orası 
 git clone https://github.com/ArdaYILDIZ-DEV/goodoc.git
 cd goodoc
 
-# pandoc yoksa önce kur (Arch: pacman -S pandoc / Ubuntu: apt install pandoc)
 python build.py
-
-# önizle
-python -m http.server --directory build
-# http://localhost:8000
 ```
 
-`content/` içine yeni bir dosya atıp tekrar `python build.py` demen yeterli. `build/` ve kökteki `index.html` otomatik yenileniyor.
+`pandoc` sistemde kurulu değilse önce paket yöneticisiyle kurulmalıdır:
 
-## Nasıl çalışıyor
+```bash
+sudo pacman -S pandoc   # Arch
+sudo apt install pandoc # Debian / Ubuntu
+```
 
-Çok bir şey yok aslında:
+Üretilen siteyi yerel olarak önizlemek için:
 
-* `content/**/*.md` dosyalarını buluyor, tarihe göre sıralıyor
-* `retro-doc.css` ve `lightbox.js`'i `build/`'e kopyalıyor
-* her markdown'ı `pandoc --standalone` ile HTML'e çeviriyor
-* görselleri `_attachments` klasörlerinden bulup doğru yere kopyalıyor, `src`'leri düzeltiyor
-* sol taraftaki ağacı ve `Son eklenenler` sayfasını oluşturuyor
+```bash
+python -m http.server --directory build
+```
 
-`build/` tamamen silinip yeniden üretilebilir. O yüzden repoda yok, `.gitignore`'da.
+Site `http://localhost:8000` adresinde erişilebilir olur.
 
-## Yeni bir yazı eklemek
+## Özellikler
+
+* `content/**/*.md` dosyalarının otomatik taranması ve tarihe göre sıralanması
+* Pandoc `--standalone` çıktısıyla tutarlı HTML üretimi
+* `_attachments` klasörlerinden görsel keşfi ve doğru hedef yola kopyalama
+* Sol kenar çubuğunda otomatik oluşturulan içerik ağacı
+* "Son eklenenler" sayfasının otomatik üretimi
+* Kod bloklarında kopyalama düğmesi
+* Zebra desenli tablolar
+* Sürükleme ve tekerlek ile yakınlaştırma destekli görsel lightbox
+* Mobil genişliklerde çekmece (drawer) biçimine geçen kenar çubuğu
+* `build/` dizininin tamamen yeniden üretilebilir olması
+
+## Gereksinimler
+
+* Python 3.11 veya üzeri
+* [`pandoc`](https://pandoc.org/)
+
+Başka bir bağımlılık gerekmez.
+
+## Yeni içerik ekleme
+
+Yeni bir sayfa eklemek için `content/` altında bir Markdown dosyası oluşturmak yeterlidir:
 
 ```bash
 mkdir -p content/notlar
@@ -60,58 +78,68 @@ Bu ilk notum.
 ![bir resim](_attachments/resim.png)
 MD
 
-# resmi yanına koy
 mkdir -p content/notlar/_attachments
 cp ~/resim.png content/notlar/_attachments/
 
 python build.py
 ```
 
-`build/notlar/merhaba.html` hazır. Resmi ister notun yanındaki `_attachments`'a, ister `content/_attachments/` altına koy — ikisi de çalışıyor.
+Bu işlem sonunda `build/notlar/merhaba.html` oluşturulur. Görseller, sayfanın bulunduğu dizindeki `_attachments` klasörüne ya da ortak `content/_attachments/` klasörüne yerleştirilebilir; her iki konum da derleyici tarafından desteklenir.
+
+## Nasıl çalışıyor
+
+Derleme her çalıştırıldığında aşağıdaki adımlar sırasıyla uygulanır:
+
+1. `content/**/*.md` dosyaları bulunur ve tarihe göre sıralanır.
+2. `retro-doc.css` ve `lightbox.js` dosyaları `build/` dizinine kopyalanır.
+3. Her Markdown dosyası `pandoc --standalone` ile HTML'e dönüştürülür.
+4. `_attachments` klasörlerindeki görseller ilgili hedef yola kopyalanır ve HTML içindeki `src` referansları buna göre düzeltilir.
+5. Kenar çubuğundaki içerik ağacı ve "Son eklenenler" sayfası yeniden oluşturulur.
+
+`build/` dizini tamamen türetilmiş bir çıktıdır ve sıfırdan yeniden üretilebilir; bu nedenle sürüm kontrolüne dahil edilmez ve `.gitignore` içinde tanımlıdır.
 
 ## Tema
 
-Daktilo / dosya havası sevdiğim için böyle yaptım. Special Elite başlıklar, JetBrains Mono metinler, kağıt rengi, kırmızı damga rengi, sert gölgeler. `retro-doc.css` tek dosya, katmanlı (`@layer`) duruyor. Kurcalamak istersen oraya bak.
+Varsayılan tema; başlıklarda Special Elite, gövde metninde JetBrains Mono, kağıt tonunda arka plan ve sert gölgelerle daktilo/dosya estetiğini hedefler. Tema, tek dosya halinde ve CSS `@layer` katmanlarıyla düzenlenmiş `retro-doc.css` içinde tanımlıdır; özelleştirme bu dosya üzerinden yapılır.
 
-Canlı örnekler için `content/docs/dokuman.md` en iyi yer — başlıklar, tablolar, kod blokları, alıntılar, görseller hepsi orada.
-
-* Kod bloklarında kopyala butonu var
-* Tablolar zebra
-* Görselleri tıklayınca lightbox açılıyor, sürükle / tekerlek ile zoom yapılıyor
-* Mobilde sidebar çekmece oluyor
+Tema bileşenlerinin canlı örnekleri için `content/docs/dokuman.md` referans alınmalıdır.
 
 ## Proje yapısı
 
-```
+```text
 goodoc/
-├── build.py        # derleyici — tek dosya, hepsi orada
-├── retro-doc.css   # tema
-├── lightbox.js     # görsel büyütme
+├── build.py        Derleyici — tüm mantık tek dosyada
+├── retro-doc.css   Tema tanımı
+├── lightbox.js     Görsel büyütme bileşeni
 ├── content/
 │   └── docs/dokuman.md
-└── build/          # çıktı (git'te yok)
+└── build/          Üretilen çıktı (sürüm kontrolüne dahil değildir)
 ```
 
-`build.py`'yi açarsan en üstte ne yaptığı özetli, fonksiyonların başında da kısa açıklamalar var.
+`build.py` içindeki her fonksiyonun başında kısa bir açıklama bulunur; dosyanın en üstünde derleyicinin genel akışı özetlenmiştir.
 
-## Gerekenler
+## Sorun giderme
 
-* Python 3.11+
-* pandoc
+### `pandoc not found`
 
-Başka bağımlılık yok.
+`pandoc`, dağıtımın paket yöneticisiyle kurulmalı ve PATH üzerinde erişilebilir olmalıdır:
 
-## Sorun çıkarsa
+```bash
+pandoc --version
+```
 
-**`pandoc not found`**
-→ `sudo pacman -S pandoc` ya da `sudo apt install pandoc`
+### Görsel görüntülenmiyor
 
-**Görsel gözükmüyor**
-→ `![alt](_attachments/resim.png)` şeklinde yazdığından ve resmin gerçekten `content/.../_attachments/` içinde olduğundan emin ol. `python build.py` log'unda `copy ... -> build/...` satırı yoksa yolu yanlıştır.
+Markdown içinde `![alt](_attachments/resim.png)` biçiminde bir yol kullanıldığından ve dosyanın gerçekten `content/.../_attachments/` altında bulunduğundan emin olunmalıdır. `python build.py` çıktısında ilgili dosya için bir `copy ... -> build/...` satırı yoksa yol tanımı hatalıdır.
 
-**Değişiklik gözükmüyor**
-→ `python build.py`'yi tekrar çalıştırdın mı? `build/` otomatik yenileniyor ama elle tetiklemen gerekiyor.
+### Değişiklikler siteye yansımıyor
+
+`build/` dizini otomatik olarak izlenmez; her içerik değişikliğinden sonra `python build.py` yeniden çalıştırılmalıdır.
+
+## Katkı
+
+Değişiklik göndermeden önce kapsamı dar tutmak, `python build.py` çıktısını doğrulamak ve mümkünse örnek içerikle test etmek önerilir.
 
 ## Lisans
 
-MIT — al, kullan, değiştir, paylaş.
+goodoc, [MIT Lisansı](LICENSE) altında yayımlanır.
