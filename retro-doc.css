@@ -705,11 +705,12 @@
     margin-block: 1.4rem;
   }
 
-  /* Copy button for code blocks. A small script (see dokuman.md) injects a real
-     <button class="copy-btn"> into EVERY div.sourceCode (hand-written or
-     Pandoc's native highlighted blocks), so the button is uniform and the icon
-     can animate on click. The icon is a minimalist clipboard SVG (no text, no
-     emoji); on click it swaps to a checkmark for 2 seconds. */
+  /* Copy button for code blocks. build.py injects COPY_BUTTON_SCRIPT into EVERY
+     generated page, which adds a real <button class="copy-btn"> to each
+     div.sourceCode (hand-written or Pandoc's native highlighted blocks), so the
+     button is uniform and the icon can animate on click. The icon is a
+     minimalist clipboard SVG (no text, no emoji); on click it swaps to a
+     checkmark for 2 seconds. */
   .copy-btn {
     position: absolute;
     top: 0.5rem;

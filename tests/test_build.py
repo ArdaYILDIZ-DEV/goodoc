@@ -275,6 +275,19 @@ class TestBuildPageShell:
         assert 'href="c.css"' in html
         assert 'src="j.js"' in html
 
+    def test_includes_copy_button_script(self):
+        html = build.build_page_shell(
+            title="T",
+            sidebar_html="",
+            body_html="",
+            css_rel="c.css",
+            js_rel="j.js",
+        )
+        # build.py injects the copy-button script into every generated page.
+        assert "copy-btn" in html
+        assert "sourceCode" in html
+        assert "navigator.clipboard" in html
+
 
 # ---------------------------------------------------------------------------
 # Attachment resolution
