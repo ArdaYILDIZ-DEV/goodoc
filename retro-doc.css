@@ -64,7 +64,6 @@
       radial-gradient(ellipse 400px 300px at 85% 15%, rgba(80, 50, 20, 0.08) 0%, transparent 60%),
       radial-gradient(ellipse 300px 200px at 10% 90%, rgba(80, 50, 20, 0.05) 0%, transparent 60%),
       var(--paper-grain);
-    background-attachment: fixed;
     color: var(--ink);
     font-family: var(--font-mono);
     font-size: 0.98rem; /* 15.7px, scalable via rem */
@@ -75,6 +74,11 @@
     hanging-punctuation: first;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  /* Fixed backdrop janks on iOS Safari (attachment unsupported there);
+     apply it only on precise-pointer devices. */
+  @media (hover: hover) and (pointer: fine) {
+    html { background-attachment: fixed; }
   }
 
   /* Explicit sheet wrapper (reference HTML uses <main class="sheet">). */
@@ -874,7 +878,8 @@
     background: var(--paper);
     border: 1px solid var(--rule);
     width: min(86vw, 1100px);
-    height: min(74vh, 780px);
+    /* Cap so frame + caption + toolbar always fit inside the 92vh frame on short screens. */
+    height: min(74vh, 780px, calc(92vh - 130px));
     max-width: 100%;
     display: grid;
     place-items: center;
@@ -1101,7 +1106,7 @@
   }
   @media (max-width: 900px) {
     .site-wrap { flex-direction: column; gap: 1rem; max-inline-size: min(100% - 1.2rem, 100% - 1.2rem); margin-block: 0.8rem; }
-    .sidebar { position: fixed; inset: 0 auto 0 0; width: min(82vw, 300px); max-height: none; height: 100dvh; height: 100vh; z-index: 999; transform: translateX(-102%); transition: transform 0.24s ease; overflow-y: auto; border-right: 2px solid var(--ink); box-shadow: 6px 0 0 var(--ink); }
+    .sidebar { position: fixed; inset: 0 auto 0 0; width: min(82vw, 300px); max-height: none; height: 100vh; height: 100dvh; z-index: 999; transform: translateX(-102%); transition: transform 0.24s ease; overflow-y: auto; border-right: 2px solid var(--ink); box-shadow: 6px 0 0 var(--ink); }
     .sidebar.is-open { transform: translateX(0); }
     .sidebar-toggle { display: grid; }
     .site-main { width: 100%; }
