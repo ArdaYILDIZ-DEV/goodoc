@@ -12,9 +12,9 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
 </p>
 
-goodoc, `content/` dizinine eklenen Markdown dosyalarını tarar, her birini `pandoc` ile HTML'e dönüştürür ve `build/` dizininde kenar çubuğu, görsel büyütme ve retro tema desteğine sahip statik bir site üretir. Sayfa iskeleti, gezinme ağacı ve varlık (attachment) yönetimi derleyici tarafından otomatik olarak oluşturulur; kullanıcının yapması gereken yalnızca Markdown yazmaktır.
+`content/` altındaki Markdown dosyalarını pandoc ile HTML'e çevirir, `build/` altında sidebar ve görsel büyütme içeren statik bir site üretir.
 
-Bileşenlerin tam kataloğu için `content/docs/dokuman.md` dosyasına bakılabilir; başlıklar, tablolar, kod blokları, alıntılar ve görsellerin canlı örnekleri bu dosyada yer alır.
+Bileşen örnekleri: `content/docs/dokuman.md`.
 
 ## Hızlı başlangıç
 
@@ -38,7 +38,7 @@ sudo apt install pandoc # Debian / Ubuntu
 python -m http.server --directory build
 ```
 
-Site `http://localhost:8000` adresinde erişilebilir olur.
+Site `http://localhost:8000` adresinde çalışır.
 
 ## Özellikler
 
@@ -84,7 +84,7 @@ cp ~/resim.png content/notlar/_attachments/
 python build.py
 ```
 
-Bu işlem sonunda `build/notlar/merhaba.html` oluşturulur. Görseller, sayfanın bulunduğu dizindeki `_attachments` klasörüne ya da ortak `content/_attachments/` klasörüne yerleştirilebilir; her iki konum da derleyici tarafından desteklenir.
+Çıktı: `build/notlar/merhaba.html`. Görseller sayfanın yanındaki `_attachments/` veya ortak `content/_attachments/` klasörüne konur.
 
 ## Nasıl çalışıyor
 
@@ -100,9 +100,7 @@ Derleme her çalıştırıldığında aşağıdaki adımlar sırasıyla uygulan�
 
 ## Tema
 
-Varsayılan tema; başlıklarda Special Elite, gövde metninde JetBrains Mono, kağıt tonunda arka plan ve sert gölgelerle daktilo/dosya estetiğini hedefler. Tema, tek dosya halinde ve CSS `@layer` katmanlarıyla düzenlenmiş `retro-doc.css` içinde tanımlıdır; özelleştirme bu dosya üzerinden yapılır.
-
-Tema bileşenlerinin canlı örnekleri için `content/docs/dokuman.md` referans alınmalıdır.
+Tema tek dosyada tanımlıdır: `retro-doc.css` (Special Elite başlıklar, JetBrains Mono gövde). Özelleştirme bu dosya üzerinden yapılır.
 
 ## Proje yapısı
 
@@ -115,8 +113,6 @@ goodoc/
 │   └── docs/dokuman.md
 └── build/          Üretilen çıktı (sürüm kontrolüne dahil değildir)
 ```
-
-`build.py` içindeki her fonksiyonun başında kısa bir açıklama bulunur; dosyanın en üstünde derleyicinin genel akışı özetlenmiştir.
 
 ## Sorun giderme
 
@@ -138,7 +134,7 @@ Markdown içinde `![alt](_attachments/resim.png)` biçiminde bir yol kullanıld�
 
 ## Katkı
 
-Değişiklik göndermeden önce kapsamı dar tutmak, `python build.py` çıktısını doğrulamak ve mümkünse örnek içerikle test etmek önerilir.
+PR'lerde kapsamı dar tutun; `python build.py` çıktısını doğrulayın.
 
 ## Lisans
 
