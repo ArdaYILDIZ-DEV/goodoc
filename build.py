@@ -440,8 +440,8 @@ for md in md_files:
   var btn=document.querySelector('.sidebar-toggle');
   var bar=document.getElementById('sidebar');
   var ov=document.getElementById('sidebarOverlay');
-  function open(){{bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true');}}
-  function close(){{bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false');}}
+  function open(){{bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden';}}
+  function close(){{bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); document.body.style.overflow='';}}
   btn.addEventListener('click', function(){{ bar.classList.contains('is-open') ? close() : open(); }});
   ov.addEventListener('click', close);
   document.addEventListener('keydown', function(e){{ if(e.key==='Escape') close(); }});
@@ -586,8 +586,8 @@ index_html = f"""<!DOCTYPE html>
   var btn=document.querySelector('.sidebar-toggle');
   var bar=document.getElementById('sidebar');
   var ov=document.getElementById('sidebarOverlay');
-  function open(){{bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true');}}
-  function close(){{bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false');}}
+  function open(){{bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden';}}
+  function close(){{bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); document.body.style.overflow='';}}
   btn.addEventListener('click', function(){{ bar.classList.contains('is-open') ? close() : open(); }});
   ov.addEventListener('click', close);
   document.addEventListener('keydown', function(e){{ if(e.key==='Escape') close(); }});
@@ -679,8 +679,8 @@ root_html = f"""<!DOCTYPE html>
   var btn=document.querySelector('.sidebar-toggle');
   var bar=document.getElementById('sidebar');
   var ov=document.getElementById('sidebarOverlay');
-  function open(){{bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true');}}
-  function close(){{bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false');}}
+  function open(){{bar.classList.add('is-open'); ov.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden';}}
+  function close(){{bar.classList.remove('is-open'); ov.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); document.body.style.overflow='';}}
   btn.addEventListener('click', function(){{ bar.classList.contains('is-open') ? close() : open(); }});
   ov.addEventListener('click', close);
   document.addEventListener('keydown', function(e){{ if(e.key==='Escape') close(); }});
