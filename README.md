@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="content/docs/_attachments/goodoc-main.png" alt="goodoc — retro tema önizleme" width="900">
+  <img src="docs/images/goodoc-main.png" alt="goodoc — retro tema önizleme" width="900">
 </p>
 
 <p align="center">
