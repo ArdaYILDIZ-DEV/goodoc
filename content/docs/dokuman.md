@@ -257,6 +257,10 @@ python3 build.py   # content/**/*.md → build/**/*.html + sidebar + _attachment
 * Ana dizinde **Son Eklenenler** sayfası: en yeni 8 belge, kartlarda başlık/klasör/tarih/özet
 * `content/` dışındaki `_attachments` aynalı mimarisi de desteklenir
 
+### İlgili Sayfalar
+
+* [Örnek Sayfa](ornek.md) — iç link yönlendirmesini ve temel bileşenleri gösteren kısa test sayfası
+
 ### Dekoratif Damga ve Karalama (Stamp / Scribble)
 
 İsteğe bağlı, salt görsel süsleme öğeleridir; `.sheet` veya `body`'ye göre konumlanır ve `pointer-events: none` ile etkileşimden muaftır. Uzun sayfalarda birden fazla `.scribble-N` konumu tanımlayabilirsiniz:
