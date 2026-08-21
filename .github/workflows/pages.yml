@@ -25,24 +25,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
       - name: Install pandoc
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc
 
+      - name: Create virtual environment
+        run: python -m venv .venv
+
       - name: Install Python dependencies
-        run: python -m pip install --break-system-packages -e ".[dev]"
+        run: .venv/bin/python -m pip install -e ".[dev]"
 
       - name: Lint
-        run: python -m ruff check .
+        run: .venv/bin/python -m ruff check .
 
       - name: Run tests
-        run: pytest tests/ -v
+        run: .venv/bin/python -m pytest tests/ -v
 
       - name: Build site
-        run: python build.py --strict
+        run: .venv/bin/python build.py --strict
 
       - name: Verify build output
         run: |
