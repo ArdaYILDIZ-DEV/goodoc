@@ -433,6 +433,134 @@ class TestRenderRecentCards:
         assert build.render_recent_cards([], tmp_path / "build") == ""
 
 
+# ---------------------------------------------------------------------------
+# Link rewriting, title escaping and document dating
+# ---------------------------------------------------------------------------
+
+
+class TestResolveDocLink:
+    """resolve_doc_link must rewrite internal .md links to .html."""
+
+    def test_rewrites_md_to_html(self, tmp_path, monkeypatch):
+        content = tmp_path / "content"
+        docs = content / "docs"
+        docs.mkdir(parents=True)
+        a = docs / "a.md"
+        a.write_text("# A")
+        b = docs / "b.md"
+        b.write_text("# B")
+        monkeypatch.setattr(build, "CONTENT", content)
+        monkeypatch.setattr(build, "BUILD", tmp_path / "build")
+        build_dir = tmp_path / "build" / "docs"
+        build_dir.mkdir(parents=True)
+        out = build_dir / "a.html"
+        result = build.resolve_doc_link(a, "b.md", out)
+        assert result == "b.html"
+
+    def test_rewrites_relative_nested_link(self, tmp_path, monkeypatch):
+        content = tmp_path / "content"
+        docs = content / "docs"
+        sub = docs / "sub"
+        sub.mkdir(parents=True)
+        a = sub / "a.md"
+        a.write_text("# A")
+        b = docs / "b.md"
+        b.write_text("# B")
+        monkeypatch.setattr(build, "CONTENT", content)
+        monkeypatch.setattr(build, "BUILD", tmp_path / "build")
+        build_dir = tmp_path / "build" / "docs" / "sub"
+        build_dir.mkdir(parents=True)
+        out = build_dir / "a.html"
+        # from sub/a.md link to sibling b.md one level up (../b.md)
+        result = build.resolve_doc_link(a, "../b.md", out)
+        assert result is not None
+        assert result.endswith("b.html")
+        assert not result.endswith(".md")
+
+    def test_keeps_fragment_and_query(self, tmp_path, monkeypatch):
+        content = tmp_path / "content"
+        docs = content / "docs"
+        docs.mkdir(parents=True)
+        a = docs / "a.md"
+        a.write_text("# A")
+        b = docs / "b.md"
+        b.write_text("# B")
+        monkeypatch.setattr(build, "CONTENT", content)
+        monkeypatch.setattr(build, "BUILD", tmp_path / "build")
+        build_dir = tmp_path / "build" / "docs"
+        build_dir.mkdir(parents=True)
+        out = build_dir / "a.html"
+        assert build.resolve_doc_link(a, "b.md#section", out) == "b.html#section"
+        assert build.resolve_doc_link(a, "b.md?x=1", out) == "b.html?x=1"
+
+    def test_external_links_return_none(self, tmp_path, monkeypatch):
+        content = tmp_path / "content"
+        content.mkdir()
+        a = content / "a.md"
+        a.write_text("# A")
+        monkeypatch.setattr(build, "CONTENT", content)
+        monkeypatch.setattr(build, "BUILD", tmp_path / "build")
+        out = tmp_path / "build" / "a.html"
+        for src in ["https://x/y", "mailto:a@b", "#anchor", "/abs/x"]:
+            assert build.resolve_doc_link(a, src, out) is None
+
+    def test_missing_doc_returns_none(self, tmp_path, monkeypatch):
+        content = tmp_path / "content"
+        content.mkdir()
+        a = content / "a.md"
+        a.write_text("# A")
+        monkeypatch.setattr(build, "CONTENT", content)
+        monkeypatch.setattr(build, "BUILD", tmp_path / "build")
+        out = tmp_path / "build" / "a.html"
+        assert build.resolve_doc_link(a, "ghost.md", out) is None
+
+
+class TestExtractDocTitle:
+    """extract_doc_title must undo pandoc's single HTML-escaping layer."""
+
+    def test_unescapes_ampersand_once(self):
+        raw = "<html><head><title>Tom &amp; Jerry</title></head><body>x</body></html>"
+        # build_page_shell will html.escape it again -> single correct escape
+        assert build.extract_doc_title(raw, "fb") == "Tom & Jerry"
+
+    def test_fallback_when_no_title(self):
+        assert build.extract_doc_title("<html><body>x</body></html>", "fb") == "fb"
+
+
+class TestGetDocDate:
+    """get_doc_date prefers front-matter date over mtime."""
+
+    def test_uses_front_matter_date(self, tmp_path):
+        p = tmp_path / "d.md"
+        p.write_text("---\ndate: 2021-05-04\n---\n# D\n")
+        assert build.get_doc_date(p).strftime("%Y-%m-%d") == "2021-05-04"
+
+    def test_falls_back_to_mtime(self, tmp_path):
+        import os
+        import time
+        p = tmp_path / "d.md"
+        p.write_text("# D\n")
+        old = time.mktime(time.strptime("2019-02-03", "%Y-%m-%d"))
+        os.utime(p, (old, old))
+        assert build.get_doc_date(p).strftime("%Y-%m-%d") == "2019-02-03"
+
+    def test_date_beats_mtime(self, tmp_path):
+        import os
+        import time
+        p = tmp_path / "d.md"
+        p.write_text("---\ndate: 2099-01-01\n---\n# D\n")
+        old = time.mktime(time.strptime("2019-02-03", "%Y-%m-%d"))
+        os.utime(p, (old, old))
+        # effective date is the front-matter one, not mtime
+        assert build.get_doc_date(p).strftime("%Y-%m-%d") == "2099-01-01"
+
+    def test_handles_datetime_format(self, tmp_path):
+        p = tmp_path / "d.md"
+        p.write_text("---\ndate: 2022-12-31T10:20:30\n---\n# D\n")
+        assert build.get_doc_date(p).strftime("%Y-%m-%d") == "2022-12-31"
+
+
+
 class TestCheckBrokenLinks:
     """_check_broken_links must ignore external URLs and flag only missing local files."""
 

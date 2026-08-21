@@ -80,8 +80,8 @@ def get_title_from_text(text: str, fallback: str = "") -> str:
         return sanitize_title(m.group(1).strip(), limit=120)
     m = re.search(r'^#\s+(.+)$', text, re.MULTILINE)
     if m:
-        t = re.sub(r'<[^>]+>', '', m.group(1))
-        return sanitize_title(t.strip()[:80], limit=80)
+        t = re.sub(r'<[^>]+>', '', m.group(1)).strip()
+        return sanitize_title(t, limit=80)
     return fallback
 
 
@@ -121,11 +121,33 @@ def get_excerpt(md_path: Path, limit: int = 160) -> str:
     return get_excerpt_from_text(text, limit=limit)
 
 
+def get_doc_date(md_path: Path) -> datetime:
+    """Return a document's effective date for sorting and display.
+
+    Prefers an explicit ``date:`` field in the YAML front matter; falls back
+    to the file's mtime when there is no date or parsing fails. Never raises,
+    so a malformed date can never break the build.
+    """
+    try:
+        text = md_path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return datetime.fromtimestamp(md_path.stat().st_mtime)
+    fm = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, re.DOTALL)
+    if fm:
+        m = re.search(r"^date:\s*(\S+)", fm.group(1), re.MULTILINE | re.IGNORECASE)
+        if m:
+            raw = m.group(1).strip().strip("\"'")
+            for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y/%m/%d"):
+                try:
+                    return datetime.strptime(raw, fmt)
+                except ValueError:
+                    continue
+    return datetime.fromtimestamp(md_path.stat().st_mtime)
+
+
 def format_date(p: Path) -> str:
-    """Return the file's mtime as YYYY-MM-DD for recent-list cards."""
-    ts = p.stat().st_mtime
-    dt = datetime.fromtimestamp(ts)
-    return dt.strftime("%Y-%m-%d")
+    """Return the document's effective date as YYYY-MM-DD for cards."""
+    return get_doc_date(p).strftime("%Y-%m-%d")
 
 
 def has_active(node: dict, current_html: Path) -> bool:
@@ -176,7 +198,7 @@ def render_tree(node: dict, current_html: Path, prefix: Path = Path(".")) -> str
             expanded = has_active(info["children"], current_html)
             if not expanded and current_html.name == "index.html":
                 try:
-                    most_recent = sorted(md_files_global, key=lambda p: p.stat().st_mtime, reverse=True)[0]
+                    most_recent = sorted(md_files_global, key=get_doc_date, reverse=True)[0]
                     most_rel = most_recent.relative_to(CONTENT).parent
                     under = most_rel == dir_path or str(most_rel).startswith(str(dir_path) + "/")
                     if most_rel != Path(".") and under:
@@ -203,6 +225,10 @@ def resolve_attachment(md_path: Path, src: str, html_path: Path) -> tuple[str | 
         return None, None
     clean = src.split("#")[0].split("?")[0]
     if not clean:
+        return None, None
+    # Document links (.md/.html) are rewritten by resolve_doc_link and must
+    # never be copied into build/ as raw source files.
+    if clean.lower().endswith((".md", ".html")):
         return None, None
     clean_path = Path(clean)
     md_dir = md_path.parent
@@ -240,15 +266,14 @@ def resolve_attachment(md_path: Path, src: str, html_path: Path) -> tuple[str | 
         if "_attachments/_attachments" in cand_str:
             cand = Path(cand_str.replace("_attachments/_attachments", "_attachments"))
 
-        # prevent directory traversal outside project
+        # Never copy files that live outside the project root.
         try:
             cand_resolved = cand.resolve()
-            inside_root = cand_resolved.is_relative_to(ROOT.resolve())
-            inside_content = cand_resolved.is_relative_to(CONTENT.resolve())
-            if not (inside_root or inside_content):
-                # candidate points outside project — skip
-                if cand.exists():
-                    continue
+            if not (
+                cand_resolved.is_relative_to(ROOT.resolve())
+                or cand_resolved.is_relative_to(CONTENT.resolve())
+            ):
+                continue
         except Exception:
             pass
 
@@ -270,21 +295,70 @@ def resolve_attachment(md_path: Path, src: str, html_path: Path) -> tuple[str | 
     return None, None
 
 
-def render_recent_cards(md_list: list[Path], link_base: Path, link_prefix: str = "") -> str:
+def extract_doc_title(raw_html: str, fallback: str) -> str:
+    """Extract the document title from pandoc's ``<title>`` element.
+
+    Pandoc already HTML-escapes the title (``Tom &amp; Jerry``), so we undo
+    that single layer here. Callers must then apply exactly one ``html.escape``
+    when emitting, otherwise a literal ``&`` would be double-encoded.
+    """
+    m = re.search(r"<title>(.*?)</title>", raw_html, re.DOTALL)
+    raw = m.group(1).strip() if m else fallback
+    return html.unescape(raw)
+
+
+def resolve_doc_link(md_path: Path, href: str, html_path: Path) -> str | None:
+    """Rewrite an internal link to a markdown doc to its built ``.html`` URL.
+
+    Handles ``b.md``, ``b``, and ``../docs/b.md`` (with optional ``#fragment``
+    or ``?query``) by locating the source markdown under ``CONTENT`` and
+    returning the path to the generated HTML page, relative to ``html_path``.
+    Returns ``None`` for external, anchor, or non-document links so the caller
+    leaves the original attribute untouched.
+    """
+    if href.startswith(("http://", "https://", "data:", "#", "/", "mailto:", "tel:")):
+        return None
+    clean = href.split("#")[0].split("?")[0]
+    if not clean:
+        return None
+    target = (md_path.parent / clean).resolve()
+    # Candidate source files: with and without the .md suffix.
+    candidates: list[Path] = []
+    if target.suffix.lower() == ".md":
+        candidates.append(target)
+        candidates.append(target.with_suffix(""))
+    else:
+        candidates.append(target.with_suffix(".md"))
+        candidates.append(target)
+    for cand in candidates:
+        try:
+            rel = cand.relative_to(CONTENT.resolve())
+        except ValueError:
+            continue
+        if not (CONTENT / rel).exists():
+            continue
+        out_html = BUILD / rel.with_suffix(".html")
+        new_href = os.path.relpath(out_html, start=html_path.parent)
+        frag = ""
+        if "#" in href:
+            frag = "#" + href.split("#", 1)[1]
+        elif "?" in href:
+            frag = "?" + href.split("?", 1)[1]
+        return new_href + frag
+    return None
+
+
+def render_recent_cards(md_list: list[Path], link_base: Path) -> str:
     """Render recent-card HTML for a list of markdown files.
 
     ``link_base`` is the directory links are relative to (BUILD or ROOT).
-    ``link_prefix`` is prepended to hrefs when needed (e.g. ``build/`` for root index).
     Results are cached from the tree build to avoid re-reading files.
     """
     parts: list[str] = []
     for md in md_list:
         rel = md.relative_to(CONTENT)
         target = BUILD / rel.with_suffix(".html")
-        if link_prefix:
-            href = f"{link_prefix}{rel.with_suffix('.html')}"
-        else:
-            href = os.path.relpath(target, start=link_base)
+        href = os.path.relpath(target, start=link_base)
 
         # reuse cached text when available
         cached = file_text_cache.get(md)
@@ -407,6 +481,15 @@ def _check_broken_links(build_dir: Path) -> list[str]:
                 target.relative_to(build_dir.resolve())
             except ValueError:
                 continue  # points outside build — not our concern
+            # A link resolving to a raw source file (.md/.html) inside build is
+            # always broken: documents should point at generated .html pages,
+            # never at leaked source. Flag it even if the file happens to exist.
+            if target.suffix.lower() in (".md",) or (
+                target.suffix.lower() == ".html"
+                and target.resolve() not in {p.resolve() for p in html_files}
+            ):
+                broken.append(f"{html_path.relative_to(build_dir)} -> {raw} (raw source link)")
+                continue
             if not target.exists():
                 broken.append(f"{html_path.relative_to(build_dir)} -> {raw}")
     return broken
@@ -441,6 +524,8 @@ def main(argv: list[str] | None = None) -> None:
     for src in [CSS_SRC, JS_SRC]:
         if src.exists():
             shutil.copy2(src, BUILD / src.name)
+        else:
+            print(f"warn: static asset missing, build will be unstyled/broken: {src}")
 
     # Copy content assets (non-md) preserving structure
     for p in CONTENT.rglob("*"):
@@ -463,6 +548,7 @@ def main(argv: list[str] | None = None) -> None:
     # Collect markdown files
     md_files = sorted(CONTENT.rglob("*.md"))
     md_files_global = md_files
+    pandoc_failures = 0
     print(f"\nFound {len(md_files)} markdown files in content/")
 
     # Build tree — each file's text is read once and cached
@@ -518,6 +604,7 @@ def main(argv: list[str] | None = None) -> None:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if result.returncode != 0:
                 print(f"pandoc failed for {md}: {result.stderr}")
+                pandoc_failures += 1
                 continue
             raw = tmp.read_text(encoding="utf-8")
         except subprocess.TimeoutExpired:
@@ -547,8 +634,14 @@ def main(argv: list[str] | None = None) -> None:
             attr = m.group(1)
             q = m.group(2)
             src = m.group(3)
-            if src.startswith(("http", "data:")):
+            # External / anchor / protocol-relative / absolute: leave untouched.
+            if src.startswith(("http", "https", "data:", "mailto:", "tel:", "//", "/")):
                 return m.group(0)
+            # Internal link to another markdown document -> rewrite to .html.
+            doc_href = resolve_doc_link(md, src, out)
+            if doc_href is not None:
+                return f'{attr}{q}{doc_href}{q}'
+            # Image / attachment reference -> copy into build and rewrite src.
             found, new_src = resolve_attachment(md, src, out)
             if new_src:
                 return f'{attr}{q}{new_src}{q}'
@@ -565,8 +658,7 @@ def main(argv: list[str] | None = None) -> None:
         )
 
         sidebar_tree = render_tree(tree, out)
-        doc_title_match = re.search(r"<title>(.*?)</title>", raw, re.DOTALL)
-        doc_title = doc_title_match.group(1).strip() if doc_title_match else title
+        doc_title = extract_doc_title(raw, title)
         home_rel = os.path.relpath(BUILD / "index.html", start=out.parent)
 
         final = build_page_shell(
@@ -587,8 +679,8 @@ def main(argv: list[str] | None = None) -> None:
         built_html_paths.append(out)
         print(f"built {out.relative_to(BUILD)}")
 
-    # --- Build recent indexes ---
-    recent = sorted(md_files, key=lambda p: p.stat().st_mtime, reverse=True)
+    # --- Build recent indexes --- (newest effective date first; mtime fallback)
+    recent = sorted(md_files, key=get_doc_date, reverse=True)
 
     image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
     total_images = 0
@@ -663,6 +755,10 @@ def main(argv: list[str] | None = None) -> None:
             for b in broken:
                 print(f"  {b}")
             sys.exit("build failed: broken internal links detected")
+
+    # --- Strict: fail if pandoc could not convert some documents ---
+    if args.strict and pandoc_failures:
+        sys.exit(f"build failed: pandoc failed on {pandoc_failures} document(s)")
 
     # --- Strict: fail if no HTML output produced ---
     if args.strict and not built_html_paths:
