@@ -514,6 +514,25 @@ class TestResolveDocLink:
         out = tmp_path / "build" / "a.html"
         assert build.resolve_doc_link(a, "ghost.md", out) is None
 
+    def test_image_link_not_treated_as_doc(self, tmp_path, monkeypatch):
+        # A link to an image/asset must NOT be rewritten to .html; the caller's
+        # attachment resolver handles it. Regression guard for a bug where
+        # "_attachments/pic.png" was wrongly rewritten to "_attachments/pic.html".
+        content = tmp_path / "content"
+        docs = content / "docs"
+        docs.mkdir(parents=True)
+        a = docs / "a.md"
+        a.write_text("# A")
+        att = docs / "_attachments"
+        att.mkdir()
+        (att / "pic.png").write_bytes(b"fake")
+        monkeypatch.setattr(build, "CONTENT", content)
+        monkeypatch.setattr(build, "BUILD", tmp_path / "build")
+        out = tmp_path / "build" / "docs" / "a.html"
+        assert build.resolve_doc_link(a, "_attachments/pic.png", out) is None
+        # a bare .html reference (e.g. an already-built page) is left alone too
+        assert build.resolve_doc_link(a, "_attachments/style.css", out) is None
+
 
 class TestExtractDocTitle:
     """extract_doc_title must undo pandoc's single HTML-escaping layer."""

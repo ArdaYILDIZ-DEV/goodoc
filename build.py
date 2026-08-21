@@ -321,6 +321,11 @@ def resolve_doc_link(md_path: Path, href: str, html_path: Path) -> str | None:
     clean = href.split("#")[0].split("?")[0]
     if not clean:
         return None
+    # Only markdown documents are rewritten to .html. Anything that already
+    # points at an asset (image, attachment, downloadable file) is NOT a doc
+    # link — return None so the caller's attachment resolver can handle it.
+    if Path(clean).suffix.lower() not in ("", ".md", ".html"):
+        return None
     target = (md_path.parent / clean).resolve()
     # Candidate source files: with and without the .md suffix.
     candidates: list[Path] = []
@@ -336,6 +341,9 @@ def resolve_doc_link(md_path: Path, href: str, html_path: Path) -> str | None:
         except ValueError:
             continue
         if not (CONTENT / rel).exists():
+            continue
+        # Only treat it as a document if the source is actually markdown.
+        if (CONTENT / rel).suffix.lower() != ".md":
             continue
         out_html = BUILD / rel.with_suffix(".html")
         new_href = os.path.relpath(out_html, start=html_path.parent)
