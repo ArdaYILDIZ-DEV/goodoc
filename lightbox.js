@@ -1,37 +1,12 @@
-/**
- * lightbox.js — Retro image overlay for goodoc
- * =================================================
- * Enhances every ``figure img`` and standalone ``p > img`` with a modal
- * lightbox (zoom, pan, keyboard and touch support). Only the image
- * transforms (``translate → scale``) so the caption stays fixed.
- *
- * Features
- * --------
- * - Click any figure/standalone image → overlay at 150% centered
- * - Toolbar: zoom in / out / reset, live percentage
- * - Drag to pan (when zoomed), wheel zoom, double-click toggle,
- *   pinch-zoom and ``+/-/0/Esc`` keys
- * - Accessible: ``role=dialog``, ``aria-modal``, focus restore, body scroll lock
- * - Safe re-init guard (``window.__lightboxInit``) for hot reload
- *
- * Usage
- * -----
- * Include after the page content (``build.py`` injects ``<script src="lightbox.js">``
- * with a relative path per page). No configuration needed.
- *
- * @module lightbox
- */
+// lightbox.js — image lightbox overlay: zoom, pan, keyboard and touch support.
+// Only the <img> transforms (translate -> scale); caption and toolbar stay fixed.
 (function () {
   "use strict";
   // Guard against double init (e.g., hot reload or duplicate script tag)
   if (window.__lightboxInit) return;
   window.__lightboxInit = true;
 
-  /**
-   * Initialize the lightbox: query images, build overlay DOM and wire events.
-   * No-op if no eligible images exist on the page.
-   * @returns {void}
-   */
+  // Build the overlay DOM and wire all events; no-op without eligible images.
   function init() {
     var imgs = document.querySelectorAll("figure img, p > img:only-child, li > img:only-child, p > a:only-child > img:only-child");
     if (!imgs.length) return;
@@ -63,37 +38,21 @@
     var zoomLevelEl = overlay.querySelector(".lb-zoom-level");
 
     var scale = 1.5, tx = 0, ty = 0;
-    var minScale = 1, maxScale = 1.5, step = 0.15; // default 150% (scale 1.5) on open, per dokuman.md
+    var minScale = 1, maxScale = 1.5, step = 0.15;
     var baseW = 0, baseH = 0;
     var lastFocus = null;
     var isDragging = false, startX = 0, startY = 0, startTX = 0, startTY = 0;
     var globalAttached = false;
 
-    /**
-     * Clamp a number to [min, max].
-     * @param {number} v - Value to clamp.
-     * @param {number} min - Lower bound.
-     * @param {number} max - Upper bound.
-     * @returns {number} Clamped value.
-     */
     function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
-    /**
-     * Update the toolbar percentage label from current ``scale``.
-     * @returns {void}
-     */
+    // Live zoom percentage for the toolbar.
     function updateLevel() {
       zoomLevelEl.textContent = Math.round(scale * 100) + "%";
     }
-    /**
-     * Apply current ``translate`` + ``scale`` to the enlarged image.
-     * Transform order is ``translate → scale`` so pan distance stays in
-     * screen pixels (caption remains fixed). Resets to 100% when scale
-     * drops near 1.
-     * @returns {void}
-     */
+    // translate runs before scale so pan distances stay in screen pixels;
+    // snap back to a clean 100% when zoomed out.
     function applyTransform() {
-      // D1: only image moves, caption fixed (viewport clip)
       largeImg.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
       updateLevel();
       viewport.style.cursor = scale > 1 ? "grab" : "zoom-in";
@@ -102,12 +61,7 @@
         largeImg.style.transform = "translate(0px,0px) scale(1)";
       }
     }
-    /**
-     * Compute allowed pan bounds for the current zoom.
-     * Visual size is ``base * scale``; excess over viewport is the
-     * pan range in screen pixels.
-     * @returns {{maxX: number, maxY: number}} Half-range on each axis.
-     */
+    // Pan range per axis: (visual size - viewport) / 2, in screen pixels.
     function getBounds() {
       var vw = viewport.clientWidth;
       var vh = viewport.clientHeight;
@@ -120,22 +74,13 @@
       var maxY = Math.max(0, (sh - vh) / 2);
       return { maxX: maxX, maxY: maxY };
     }
-    /**
-     * Clamp ``tx``/``ty`` to the current bounds.
-     * @returns {void}
-     */
+    // Keep the pan offset inside bounds.
     function clampTranslate() {
       var b = getBounds();
       tx = clamp(tx, -b.maxX, b.maxX);
       ty = clamp(ty, -b.maxY, b.maxY);
     }
-    /**
-     * Set a new zoom level, optionally keeping the point under the cursor fixed.
-     * @param {number} newScale - Target scale (clamped to [minScale, maxScale]).
-     * @param {number} [cx] - Client X of the zoom origin (e.g., wheel position).
-     * @param {number} [cy] - Client Y of the zoom origin.
-     * @returns {void}
-     */
+    // Zoom to newScale; when (cx, cy) is given, the point under it stays put.
     function setScale(newScale, cx, cy) {
       newScale = clamp(newScale, minScale, maxScale);
       if (newScale === scale) return;
@@ -152,10 +97,7 @@
       else clampTranslate();
       applyTransform();
     }
-    /**
-     * Reset to the default 150% centered view and clear dragging state.
-     * @returns {void}
-     */
+    // Back to the default centered 150% view.
     function reset() {
       scale = 1.5; tx = 0; ty = 0; // default 150% — restore to initial zoom, centered
       largeImg.classList.remove("is-dragging");
@@ -163,11 +105,7 @@
       applyTransform();
     }
 
-    /**
-     * Handle pointer down on the viewport — start dragging if zoomed.
-     * @param {MouseEvent} e
-     * @returns {void}
-     */
+    // Start dragging; only meaningful while zoomed in.
     function onPointerDown(e) {
       if (scale <= 1) return;
       isDragging = true;
@@ -178,11 +116,7 @@
       startTX = tx; startTY = ty;
       e.preventDefault();
     }
-    /**
-     * Handle pointer move while dragging — update ``tx``/``ty`` with damping.
-     * @param {MouseEvent} e
-     * @returns {void}
-     */
+    // Drag with damping (0.85) for a slightly weighted feel.
     function onPointerMove(e) {
       if (!isDragging) return;
       var dx = e.clientX - startX;
@@ -192,31 +126,21 @@
       clampTranslate();
       largeImg.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
     }
-    /**
-     * Handle pointer up — end dragging and clear grabbing styles.
-     * @returns {void}
-     */
+    // End dragging and clear grabbing styles.
     function onPointerUp() {
       if (!isDragging) return;
       isDragging = false;
       largeImg.classList.remove("is-dragging");
       viewport.classList.remove("is-grabbing");
     }
-    /**
-     * Attach global mousemove/mouseup listeners (only while overlay is open).
-     * Idempotent.
-     * @returns {void}
-     */
+    // Track mouse globally only while the overlay is open; idempotent.
     function attachGlobal() {
       if (globalAttached) return;
       window.addEventListener("mousemove", onPointerMove);
       window.addEventListener("mouseup", onPointerUp);
       globalAttached = true;
     }
-    /**
-     * Detach global listeners.
-     * @returns {void}
-     */
+    // Drop the global listeners.
     function detachGlobal() {
       if (!globalAttached) return;
       window.removeEventListener("mousemove", onPointerMove);
@@ -224,13 +148,7 @@
       globalAttached = false;
     }
 
-    /**
-     * Open the overlay for a given image.
-     * @param {string} src - Image URL (``currentSrc`` or ``src``).
-     * @param {string} alt - Alt text for accessibility.
-     * @param {string} caption - Caption text (from ``figcaption`` or alt).
-     * @returns {void}
-     */
+    // Open the overlay: swap src, show caption, lock body scroll, measure after layout.
     function open(src, alt, caption) {
       largeImg.src = src;
       largeImg.alt = alt || "";
@@ -240,11 +158,11 @@
       overlay.setAttribute("aria-hidden", "false");
       lastFocus = document.activeElement;
       scale = 1.5; tx = 0; ty = 0;
-      largeImg.style.transform = "translate(0px,0px) scale(1.5)"; // open at 150%, centered, bounds allow edge pan
+      largeImg.style.transform = "translate(0px,0px) scale(1.5)";
       updateLevel();
       document.body.style.overflow = "hidden";
       attachGlobal();
-      // M12: error fallback
+      // Friendly fallback if the enlarged image fails to load.
       largeImg.onerror = function () {
         captionEl.textContent = "Görsel yüklenemedi";
         captionEl.style.display = "block";
@@ -277,10 +195,7 @@
       }
       try { closeBtn.focus(); } catch (e) {}
     }
-    /**
-     * Close the overlay, restore focus and body scroll.
-     * @returns {void}
-     */
+    // Close: restore focus and scroll; delayed reset lets the fade-out finish.
     function close() {
       overlay.classList.remove("is-open");
       overlay.setAttribute("aria-hidden", "true");
@@ -314,7 +229,7 @@
     zoomOutBtn.addEventListener("click", function () { setScale(scale - step); });
     zoomResetBtn.addEventListener("click", reset);
 
-    // M6: normalized wheel with deltaMode
+    // Normalize wheel deltas across deltaMode (line/page) for consistent zoom speed.
     viewport.addEventListener("wheel", function (e) {
       e.preventDefault();
       var delta = e.deltaY;
@@ -327,14 +242,13 @@
 
     viewport.addEventListener("dblclick", function (e) {
       e.preventDefault();
-      // toggle between 100% (min) and 150% (default) — reset goes to 150%
       if (scale > 1.01) setScale(1, e.clientX, e.clientY);
       else setScale(1.5, e.clientX, e.clientY);
     });
 
     viewport.addEventListener("mousedown", onPointerDown);
 
-    // touch
+    // Touch: one finger pans while zoomed, two fingers pinch-zoom.
     var lastTouchDist = 0;
     viewport.addEventListener("touchstart", function (e) {
       if (e.touches.length === 1) {
@@ -379,6 +293,7 @@
       }
     });
 
+    // Keyboard shortcuts: + / - zoom, 0 reset, Esc close.
     document.addEventListener("keydown", function (e) {
       if (!overlay.classList.contains("is-open")) return;
       if (e.key === "Escape") close();
@@ -387,6 +302,7 @@
       else if (e.key === "0") { e.preventDefault(); reset(); }
     });
 
+    // Re-measure on resize so pan bounds stay valid.
     window.addEventListener("resize", function () {
       if (!overlay.classList.contains("is-open")) return;
       var r = largeImg.getBoundingClientRect();
